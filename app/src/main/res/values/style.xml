@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="EstiloBoton">
+        <item name="android:backgroundTint">#95F429</item>
+    </style>
+    <style name="EstiloBoton.Alternativo">
+        <item name="android:padding">20dp</item>
+
+</style>
+    </resources>

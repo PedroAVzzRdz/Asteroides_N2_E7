@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/cycle_interpolator"
+    android:repeatCount="infinite"
+    android:repeatMode="reverse">
+    <!-- Balanceo como asteroide flotando (rotación oscilante) -->
+    <rotate
+        android:duration="3000"
+        android:fromDegrees="-8"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:toDegrees="8" />
+    <!-- Movimiento horizontal sutil -->
+    <translate
+        android:duration="3000"
+        android:fromXDelta="0%"
+        android:toXDelta="2%" />
+</set>
+
+
+
+

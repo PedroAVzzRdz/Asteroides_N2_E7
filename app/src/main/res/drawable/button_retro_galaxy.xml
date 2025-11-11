@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Estado presionado -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Sombra interna (efecto presionado) -->
+            <item android:bottom="2dp" android:right="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="#FF6B9D" />
+                    <stroke android:width="3dp" android:color="#FF1744" />
+                </shape>
+            </item>
+            <!-- Botón presionado -->
+            <item android:bottom="4dp" android:right="4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <gradient
+                        android:startColor="#9C27B0"
+                        android:centerColor="#E91E63"
+                        android:endColor="#3F51B5"
+                        android:angle="135" />
+                    <stroke android:width="2dp" android:color="#FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+    <!-- Estado normal -->
+    <item>
+        <layer-list>
+            <!-- Sombra externa -->
+            <item android:top="4dp" android:left="4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="#1A0033" />
+                </shape>
+            </item>
+            <!-- Borde brillante -->
+            <item android:top="2dp" android:left="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="#7B1FA2" />
+                    <stroke android:width="1dp" android:color="#E91E63" />
+                </shape>
+            </item>
+            <!-- Gradiente principal galáctico -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <gradient
+                        android:startColor="#4A148C"
+                        android:centerColor="#880E4F"
+                        android:endColor="#1A237E"
+                        android:angle="135" />
+                    <stroke android:width="2dp" android:color="#AB47BC" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>
+
+
+
+

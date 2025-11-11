@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- StarView para efecto de estrellas y estrellas fugaces -->
+    <com.example.asteroidesreal.StarView
+        android:id="@+id/starView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+    
+    <!-- AlienView para animación de aliens voladores -->
+    <com.example.asteroidesreal.AlienView
+        android:id="@+id/alienView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="5dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- Animación de planeta (fija para evitar que se encoja) -->
+    <ImageView
+        android:id="@+id/animationLoop"
+        android:layout_width="250dp"
+        android:layout_height="252dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:contentDescription="Animación de fotogramas"
+        android:padding="8dp"
+        android:scaleType="fitXY"
+        android:adjustViewBounds="false"
+        android:minWidth="250dp"
+        android:minHeight="252dp"
+        android:maxWidth="250dp"
+        android:maxHeight="252dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Logo centrado arriba (tamaño fijo en landscape) -->
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:contentDescription="Logo"
+        android:scaleType="fitCenter"
+        android:src="@drawable/logo"
+        android:minWidth="200dp"
+        android:maxWidth="200dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/buttonsContainer"
+        app:layout_constraintVertical_bias="0.2" />
+
+    <!-- Contenedor de botones distribuidos horizontalmente -->
+    <LinearLayout
+        android:id="@+id/buttonsContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/logo"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.3">
+
+        <android.widget.Button
+            android:id="@+id/button"
+            android:layout_width="0dp"
+            android:layout_height="65dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="JUGAR"
+            android:background="@drawable/button_retro_galaxy"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/upheavtt"
+            android:elevation="8dp"
+            android:letterSpacing="0.05"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <android.widget.Button
+            android:id="@+id/button2"
+            android:layout_width="0dp"
+            android:layout_height="65dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="CONFIGURACIÓN"
+            android:background="@drawable/button_retro_galaxy"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/upheavtt"
+            android:elevation="8dp"
+            android:letterSpacing="0.05"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <android.widget.Button
+            android:id="@+id/button3"
+            android:layout_width="0dp"
+            android:layout_height="65dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="ACERCA DE"
+            android:background="@drawable/button_retro_galaxy"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/upheavtt"
+            android:elevation="8dp"
+            android:letterSpacing="0.05"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <android.widget.Button
+            android:id="@+id/button5"
+            android:layout_width="0dp"
+            android:layout_height="65dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="PUNTAJES"
+            android:background="@drawable/button_retro_galaxy"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/upheavtt"
+            android:elevation="8dp"
+            android:letterSpacing="0.05"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <android.widget.Button
+            android:id="@+id/button4"
+            android:layout_width="0dp"
+            android:layout_height="65dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="SALIR"
+            android:background="@drawable/button_retro_galaxy"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/upheavtt"
+            android:elevation="8dp"
+            android:letterSpacing="0.05"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

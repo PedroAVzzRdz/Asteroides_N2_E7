@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Gradiente base -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#0B0C3A"
+                android:endColor="#3A0B5C"
+                android:angle="45"/>
+        </shape>
+    </item>
+
+    <!-- Efecto nebulosa -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#2E0B3C"
+                android:endColor="#0B0C3A"
+                android:angle="135"
+                android:type="radial"
+                android:gradientRadius="500"/>
+        </shape>
+    </item>
+
+    <shape xmlns:android="http://schemas.android.com/apk/res/android">
+        <solid android:color="#000000"/>
+        <stroke android:width="2dp" android:color="#FFD700"/>
+        <corners android:radius="12dp"/>
+    </shape>
+
+
+</layer-list>

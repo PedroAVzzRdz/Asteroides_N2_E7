@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+    android:repeatCount="infinite"
+    android:repeatMode="reverse">
+    <!-- Elevación suave (como levitando) -->
+    <translate
+        android:duration="2500"
+        android:fromYDelta="0%"
+        android:toYDelta="-3%" />
+    <!-- Efecto de glow (brillo) con alpha -->
+    <alpha
+        android:duration="2500"
+        android:fromAlpha="1.0"
+        android:toAlpha="0.85" />
+    <!-- Rotación muy sutil -->
+    <rotate
+        android:duration="2500"
+        android:fromDegrees="-3"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:toDegrees="3" />
+</set>
+
+
+
+

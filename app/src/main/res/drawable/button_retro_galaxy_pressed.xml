@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sombra interna (efecto presionado) -->
+    <item android:bottom="2dp" android:right="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="8dp" />
+            <solid android:color="#FF6B9D" />
+            <stroke android:width="3dp" android:color="#FF1744" />
+        </shape>
+    </item>
+    <!-- Botón presionado -->
+    <item android:bottom="4dp" android:right="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="8dp" />
+            <gradient
+                android:startColor="#9C27B0"
+                android:centerColor="#E91E63"
+                android:endColor="#3F51B5"
+                android:angle="135" />
+            <stroke android:width="2dp" android:color="#FFFFFF" />
+        </shape>
+    </item>
+</layer-list>
+
+
+
+

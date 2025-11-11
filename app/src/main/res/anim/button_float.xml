@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+    android:repeatCount="infinite"
+    android:repeatMode="reverse">
+    <!-- Flotación vertical suave (como en el espacio) -->
+    <translate
+        android:duration="2000"
+        android:fromYDelta="0%"
+        android:toYDelta="-5%" />
+    <!-- Ligera rotación mientras flota -->
+    <rotate
+        android:duration="2000"
+        android:fromDegrees="-2"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:toDegrees="2" />
+</set>
+
+
+
+

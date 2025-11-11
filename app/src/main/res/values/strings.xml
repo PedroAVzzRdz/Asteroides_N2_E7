@@ -1,0 +1,17 @@
+<resources>
+
+        <string name="app_name">AsteroidesApp</string>
+        <string name="asteroides">Asteroides</string>
+        <string name="jugar">Jugar</string>
+        <string name="configuracion">Configuración</string>
+        <string name="acerca_de">Acerca de</string>
+        <string name="salir">Salir</string>
+
+        <string-array name="opciones_graficos">
+                <item>Vector (Imagen)</item>
+                <item>Normal</item>
+                <item>Vector (Puro)</item>
+        </string-array>
+
+
+</resources>
