@@ -42,7 +42,10 @@ public class VistaJuego extends View implements SensorEventListener {
     // SENSORES
     private SensorManager mSensorManager;
     private Sensor acelerometro;
+    private Sensor giroscopio;
     private boolean sensoresActivados = true;
+    private float[] valoresGiroscopio = new float[3];
+    private float[] valoresAcelerometro = new float[3];
 
     // ASTEROIDES
     private List<Grafico> asteroides;
@@ -411,6 +414,7 @@ public class VistaJuego extends View implements SensorEventListener {
     private MediaPlayer sonidoColision;
     private MediaPlayer sonidoEscudoAparece;
     private MediaPlayer sonidoEscudoExplota;
+    private boolean audioMuteado = false; // Estado de silencio del audio
     
     // REFERENCIA AL StarViewGame
     private View starViewGame;
@@ -458,14 +462,20 @@ public class VistaJuego extends View implements SensorEventListener {
             juegoIniciado = true;
             mostrandoNivel = false;
         } else {
+            // Juego nuevo: siempre empezar con 3 vidas
             nivel = 1;
             puntaje = 0;
-            vidas = 3;
-            vidasInicialesNivel = vidas;
+            vidas = 3; // Asegurar que siempre empiece con 3 vidas
+            vidasInicialesNivel = 3; // Asegurar vidas iniciales del nivel
             enemigosDerrotados = 0;
             mostrandoNivel = false;
             estadoMision = EstadoMision.NORMAL;
             juegoIniciado = false;
+            // Limpiar cualquier estado previo para asegurar un inicio limpio
+            // (solo limpiar el flag, no todos los valores ya que pueden no estar inicializados)
+            SharedPreferences.Editor editor = gameState.edit();
+            editor.putBoolean("juego_en_curso", false);
+            editor.apply();
         }
         
         // Cargar número de fragmentos configurado
@@ -810,6 +820,12 @@ public class VistaJuego extends View implements SensorEventListener {
         // Solo marcar como iniciado si no lo está ya
         if (!juegoIniciado) {
             juegoIniciado = true;
+            // Asegurar que siempre empiece con 3 vidas cuando se inicia un juego nuevo
+            vidas = 3;
+            vidasInicialesNivel = 3;
+            // Activar inmunidad inicial para evitar colisiones inmediatas al inicio
+            inmune = true;
+            tiempoInmunidad = System.currentTimeMillis();
         }
         // Asegurar que el juego no esté pausado
         pausado = false;
@@ -822,19 +838,8 @@ public class VistaJuego extends View implements SensorEventListener {
         if (!isThreadAlive()) {
             iniciarThreadJuego();
         }
-        // Reproducir sonido del nivel 1 solo si es el nivel 1 y el sonido está inicializado
-        // NO reproducir para niveles superiores
-        if (nivel == 1 && sonidoNivel1 != null) {
-            try {
-                if (sonidoNivel1.isPlaying()) {
-                    sonidoNivel1.stop();
-                }
-                sonidoNivel1.seekTo(0);
-                sonidoNivel1.start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        // Reproducir música del juego (sonidoNivel1) para todos los niveles
+        reproducirMusicaJuego();
         // Guardar estado después de iniciar
         guardarEstadoJuego();
     }
@@ -859,6 +864,14 @@ public class VistaJuego extends View implements SensorEventListener {
         // Esto asegura que la pantalla de bonus se actualice correctamente
         if (estadoMision != EstadoMision.NORMAL) {
             actualizarEstadoMision();
+        }
+        
+        // Verificar que la música solo suene cuando el juego está activo
+        // Esto asegura que se detenga inmediatamente si el juego se pausa o termina
+        if (sonidoNivel1 != null && sonidoNivel1.isPlaying()) {
+            if (pausado || juegoTerminado || audioMuteado || !juegoIniciado) {
+                detenerMusicaInmediatamente();
+            }
         }
         
         // Actualizar estado del cooldown (SIEMPRE, incluso si está pausado)
@@ -1081,12 +1094,44 @@ public class VistaJuego extends View implements SensorEventListener {
                     nave.setIncX(nIncX);
                     nave.setIncY(nIncY);
                 }
+            } else if (sensoresActivados && !enCooldown) {
+                // Control de sensores: girar y acelerar basado en sensores
+                // Aplicar giro de la nave
+                if (Math.abs(giroNave) > 0.01) {
+                    nave.setAngulo(nave.getAngulo() + giroNave * factorMov);
+                }
+                
+                // Aplicar aceleración basada en sensores
+                if (aceleracionNave > 0.01) {
+                    double aceleracion = aceleracionNave;
+                    if (powerUpActivo == PowerUpType.VELOCIDAD) {
+                        aceleracion *= 1.5;
+                    }
+                    
+                    double anguloMovimiento = nave.getAngulo();
+                    double nIncX = nave.getIncX() + aceleracion * Math.cos(Math.toRadians(anguloMovimiento)) * factorMov;
+                    double nIncY = nave.getIncY() + aceleracion * Math.sin(Math.toRadians(anguloMovimiento)) * factorMov;
+                    
+                    double maxVelocidad = MAX_VELOCIDAD_NAVE;
+                    if (powerUpActivo == PowerUpType.VELOCIDAD) {
+                        maxVelocidad *= 1.3;
+                    }
+                    
+                    double velocidadActual = Math.hypot(nIncX, nIncY);
+                    if (velocidadActual > maxVelocidad) {
+                        nIncX = (nIncX / velocidadActual) * maxVelocidad;
+                        nIncY = (nIncY / velocidadActual) * maxVelocidad;
+                    }
+                    
+                    nave.setIncX(nIncX);
+                    nave.setIncY(nIncY);
+                }
             }
             
             // Aplicar fricción cuando no hay input
             if ((!tecladoActivado || (!teclaArriba && !teclaIzquierda && !teclaDerecha)) && 
                 (!tactilActivado || velocidadJoystick == 0) &&
-                (!sensoresActivados)) {
+                (!sensoresActivados || (aceleracionNave <= 0.01 && Math.abs(giroNave) <= 0.01))) {
                 nave.setIncX(nave.getIncX() * FRICCION);
                 nave.setIncY(nave.getIncY() * FRICCION);
             }
@@ -1395,17 +1440,9 @@ public class VistaJuego extends View implements SensorEventListener {
 
     public void detenerJuego() {
         if (thread != null) thread.detener();
-        // Detener música cuando se detiene el juego
-        if (sonidoNivel1 != null) {
-            try {
-                if (sonidoNivel1.isPlaying()) {
-                    sonidoNivel1.stop();
-                }
-                sonidoNivel1.reset();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        // Detener inmediatamente toda la música y sonidos cuando se detiene el juego
+        detenerMusicaInmediatamente();
+        
         // También detener sonido de misión completada si está sonando
         if (sonidoMisionCompletada != null) {
             try {
@@ -2326,26 +2363,57 @@ public class VistaJuego extends View implements SensorEventListener {
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (!sensoresActivados || juegoTerminado || enCooldown) return;
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+        if (!sensoresActivados || juegoTerminado || enCooldown || pausado) return;
+        
+        int tipoSensor = event.sensor.getType();
+        
+        if (tipoSensor == Sensor.TYPE_ACCELEROMETER) {
+            // Guardar valores del acelerómetro
+            valoresAcelerometro[0] = event.values[0];
+            valoresAcelerometro[1] = event.values[1];
+            valoresAcelerometro[2] = event.values[2];
+        } else if (tipoSensor == Sensor.TYPE_GYROSCOPE) {
+            // Guardar valores del giroscopio
+            valoresGiroscopio[0] = event.values[0];
+            valoresGiroscopio[1] = event.values[1];
+            valoresGiroscopio[2] = event.values[2];
+        }
+        
+        // Usar giroscopio para rotación (más preciso y responsivo)
+        if (giroscopio != null && tipoSensor == Sensor.TYPE_GYROSCOPE) {
+            float rotacionZ = event.values[2]; // Rotación alrededor del eje Z (yaw) en radianes/segundo
+            // Aumentar sensibilidad del giroscopio para que sea más responsivo
+            if (Math.abs(rotacionZ) > 0.05f) {
+                // Convertir radianes/segundo a grados y aplicar factor de sensibilidad mayor
+                // Multiplicar por 15 en lugar de 10 para mayor sensibilidad
+                giroNave = Math.max(-PASO_GIRO_NAVE, Math.min(PASO_GIRO_NAVE, -rotacionZ * 15.0));
+            } else {
+                // Solo suavizar si no hay otros controles activos
+                if (!tecladoActivado && !tactilActivado) {
+                    giroNave *= 0.85; // Suavizar el giro cuando no hay rotación
+                }
+            }
+        } else if (tipoSensor == Sensor.TYPE_ACCELEROMETER) {
+            // Si no hay giroscopio, usar acelerómetro para rotación
             float x = event.values[0];
-            float y = event.values[1];
-            
-            // Giro basado en inclinación horizontal
-            if (Math.abs(x) > 0.5f) {
-                giroNave = Math.max(-PASO_GIRO_NAVE, Math.min(PASO_GIRO_NAVE, -x * 0.5));
+            if (Math.abs(x) > 0.3f) {
+                // Aumentar sensibilidad del acelerómetro
+                giroNave = Math.max(-PASO_GIRO_NAVE, Math.min(PASO_GIRO_NAVE, -x * 0.8));
             } else {
                 if (!tecladoActivado && !tactilActivado) {
-                    giroNave = 0;
+                    giroNave *= 0.85; // Suavizar el giro
                 }
             }
             
+            // Usar acelerómetro para aceleración (inclinación hacia adelante)
+            float y = event.values[1];
             // Aceleración basada en inclinación vertical (hacia adelante)
-            if (y < -2.0f) {
-                aceleracionNave = Math.min(PASO_ACELERACION_NAVE, Math.abs(y) * 0.2);
+            // Reducir el umbral para que sea más sensible
+            if (y < -1.5f) {
+                aceleracionNave = Math.min(PASO_ACELERACION_NAVE, Math.abs(y) * 0.3);
             } else {
                 if (!tecladoActivado && !tactilActivado) {
-                    aceleracionNave = 0;
+                    aceleracionNave *= 0.9; // Suavizar la desaceleración
                 }
             }
         }
@@ -2413,6 +2481,31 @@ public class VistaJuego extends View implements SensorEventListener {
     
     public void setPausado(boolean pausado) {
         this.pausado = pausado;
+        // Si se pausa, detener inmediatamente la música
+        if (pausado) {
+            detenerMusicaInmediatamente();
+        } else if (!pausado && juegoIniciado && !juegoTerminado && !audioMuteado) {
+            // Si se despausa el juego, intentar reproducir la música
+            reproducirMusicaJuego();
+        }
+    }
+    
+    // Método para detener la música inmediatamente
+    private void detenerMusicaInmediatamente() {
+        if (sonidoNivel1 != null) {
+            try {
+                if (sonidoNivel1.isPlaying()) {
+                    sonidoNivel1.stop(); // Detener inmediatamente, no pausar
+                }
+                sonidoNivel1.reset(); // Resetear para asegurar que se detenga completamente
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    public boolean isPausado() {
+        return pausado;
     }
     
     // Método para iniciar cooldown después de rotación
@@ -2443,6 +2536,9 @@ public class VistaJuego extends View implements SensorEventListener {
     
     // Métodos para activar/desactivar sensores dinámicamente
     public void activarSensores() {
+        // Primero desactivar sensores para evitar registros duplicados
+        desactivarSensores();
+        
         if (mSensorManager == null) {
             Context context = getContext();
             if (context != null) {
@@ -2450,23 +2546,41 @@ public class VistaJuego extends View implements SensorEventListener {
             }
         }
         if (mSensorManager != null) {
-            // Si el acelerómetro no está inicializado, obtenerlo
+            // Obtener acelerómetro
             if (acelerometro == null) {
                 List<Sensor> listSensors = mSensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER);
                 if (!listSensors.isEmpty()) {
                     acelerometro = listSensors.get(0);
                 }
             }
-            // Registrar el listener si el sensor está disponible y no está ya registrado
+            
+            // Obtener giroscopio
+            if (giroscopio == null) {
+                List<Sensor> listGiroscopio = mSensorManager.getSensorList(Sensor.TYPE_GYROSCOPE);
+                if (!listGiroscopio.isEmpty()) {
+                    giroscopio = listGiroscopio.get(0);
+                }
+            }
+            
+            // Registrar acelerómetro
             if (acelerometro != null) {
                 try {
                     mSensorManager.registerListener(this, acelerometro, SensorManager.SENSOR_DELAY_GAME);
-                    sensoresActivados = true;
                 } catch (Exception e) {
-                    // Si ya está registrado o hay algún error, simplemente marcar como activado
-                    sensoresActivados = true;
+                    e.printStackTrace();
                 }
             }
+            
+            // Registrar giroscopio si está disponible
+            if (giroscopio != null) {
+                try {
+                    mSensorManager.registerListener(this, giroscopio, SensorManager.SENSOR_DELAY_GAME);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            
+            sensoresActivados = true;
         }
     }
     
@@ -2483,20 +2597,29 @@ public class VistaJuego extends View implements SensorEventListener {
     }
     
     public void actualizarConfiguracionSensores() {
+        if (getContext() == null) return;
+        
         SharedPreferences pref = getContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
         boolean sensoresActivadosNuevo = pref.getBoolean("entrada_sensor", true);
         
-        if (sensoresActivadosNuevo != sensoresActivados) {
-            if (sensoresActivadosNuevo) {
-                activarSensores();
-            } else {
-                desactivarSensores();
-            }
-        }
-        
-        // Actualizar otras configuraciones también
+        // Actualizar otras configuraciones primero
         tecladoActivado = pref.getBoolean("entrada_teclado", true);
         tactilActivado = pref.getBoolean("entrada_tactil", true);
+        
+        // Si cambió el estado de los sensores, actualizar
+        if (sensoresActivadosNuevo != sensoresActivados) {
+            if (sensoresActivadosNuevo) {
+                // Activar sensores (esto también los desregistra primero para evitar duplicados)
+                activarSensores();
+            } else {
+                // Desactivar sensores
+                desactivarSensores();
+            }
+        } else if (sensoresActivadosNuevo && sensoresActivados) {
+            // Si ya están activados pero puede que no estén registrados correctamente, reactivarlos
+            // Esto asegura que funcionen incluso si hubo algún problema
+            activarSensores();
+        }
     }
     
     // Método público para generar asteroides si es necesario (llamado desde Juego.java)
@@ -2588,18 +2711,8 @@ public class VistaJuego extends View implements SensorEventListener {
             return;
         }
         
-        // Reproducir sonido del nivel 1 si es el nivel 1
-        if (nivel == 1 && sonidoNivel1 != null) {
-            try {
-                if (sonidoNivel1.isPlaying()) {
-                    sonidoNivel1.stop();
-                }
-                sonidoNivel1.seekTo(0);
-                sonidoNivel1.start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        // Reproducir música del juego para todos los niveles
+        reproducirMusicaJuego();
         
         // Número de asteroides aumenta con el nivel (5 + nivel)
         numAsteroides = 5 + nivel;
@@ -3080,6 +3193,7 @@ public class VistaJuego extends View implements SensorEventListener {
     }
     
     private void reproducirSonido(MediaPlayer player) {
+        if (audioMuteado) return; // No reproducir si está silenciado
         try {
             if (player != null) {
                 if (player.isPlaying()) {
@@ -3095,6 +3209,7 @@ public class VistaJuego extends View implements SensorEventListener {
     
     // Método para reproducir sonido de explosión usando SoundPool (permite múltiples reproducciones simultáneas)
     private void reproducirSonidoExplosion() {
+        if (audioMuteado) return; // No reproducir si está silenciado
         try {
             if (soundPool != null && soundIdExplosion != 0) {
                 // Reproducir el sonido con volumen 0.7 (ambos canales) y prioridad 1 (normal)
@@ -3103,6 +3218,120 @@ public class VistaJuego extends View implements SensorEventListener {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+    
+    // Métodos para controlar el mute del audio
+    public void setAudioMuteado(boolean muteado) {
+        audioMuteado = muteado;
+        // Si se silencia, detener completamente todos los sonidos
+        if (muteado) {
+            if (sonidoDisparo != null) {
+                try {
+                    if (sonidoDisparo.isPlaying()) {
+                        sonidoDisparo.stop();
+                    }
+                    sonidoDisparo.reset();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (sonidoEscudoAparece != null) {
+                try {
+                    if (sonidoEscudoAparece.isPlaying()) {
+                        sonidoEscudoAparece.stop();
+                    }
+                    sonidoEscudoAparece.reset();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (sonidoEscudoExplota != null) {
+                try {
+                    if (sonidoEscudoExplota.isPlaying()) {
+                        sonidoEscudoExplota.stop();
+                    }
+                    sonidoEscudoExplota.reset();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (sonidoMisionCompletada != null) {
+                try {
+                    if (sonidoMisionCompletada.isPlaying()) {
+                        sonidoMisionCompletada.stop();
+                    }
+                    sonidoMisionCompletada.reset();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (sonidoNivel1 != null) {
+                try {
+                    if (sonidoNivel1.isPlaying()) {
+                        sonidoNivel1.stop();
+                    }
+                    sonidoNivel1.reset();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            // Si se activa el audio, intentar reproducir la música del juego si está iniciado
+            if (juegoIniciado && !pausado) {
+                reproducirMusicaJuego();
+            }
+        }
+    }
+    
+    public boolean isAudioMuteado() {
+        return audioMuteado;
+    }
+    
+    // Método para reproducir la música del juego
+    // SOLO se reproduce cuando el juego está activo y en el nivel
+    private void reproducirMusicaJuego() {
+        // Verificar condiciones: no silenciado, juego iniciado, no pausado, no terminado
+        if (audioMuteado || !juegoIniciado || pausado || juegoTerminado) {
+            // Si no se cumplen las condiciones, detener la música
+            detenerMusicaInmediatamente();
+            return;
+        }
+        
+        // Asegurar que los sonidos estén inicializados
+        if (sonidoNivel1 == null && getContext() != null) {
+            inicializarSonidos();
+        }
+        
+        if (sonidoNivel1 != null) {
+            try {
+                // Solo reproducir si no está reproduciéndose y todas las condiciones se cumplen
+                if (!sonidoNivel1.isPlaying() && juegoIniciado && !pausado && !juegoTerminado && !audioMuteado) {
+                    sonidoNivel1.seekTo(0);
+                    sonidoNivel1.start();
+                } else if (sonidoNivel1.isPlaying() && (pausado || juegoTerminado || audioMuteado)) {
+                    // Si está reproduciéndose pero no debería, detenerla
+                    detenerMusicaInmediatamente();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Si hay error, intentar reinicializar
+                try {
+                    if (getContext() != null) {
+                        sonidoNivel1 = MediaPlayer.create(getContext(), R.raw.l1);
+                        if (sonidoNivel1 != null) {
+                            sonidoNivel1.setVolume(1.0f, 1.0f);
+                            sonidoNivel1.setLooping(true);
+                            // Solo iniciar si todas las condiciones se cumplen
+                            if (juegoIniciado && !pausado && !juegoTerminado && !audioMuteado) {
+                                sonidoNivel1.start();
+                            }
+                        }
+                    }
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
+            }
         }
     }
     
@@ -3161,6 +3390,7 @@ public class VistaJuego extends View implements SensorEventListener {
                 sonidoNivel1 = MediaPlayer.create(context, R.raw.l1);
                 if (sonidoNivel1 != null) {
                     sonidoNivel1.setVolume(1.0f, 1.0f);
+                    sonidoNivel1.setLooping(true); // Reproducir en loop continuo
                 }
             }
         } catch (Exception e) {
@@ -3273,7 +3503,7 @@ public class VistaJuego extends View implements SensorEventListener {
         calcularBonuses();
         
         // Reproducir sonido de misión completada
-        if (sonidoMisionCompletada != null) {
+        if (sonidoMisionCompletada != null && !audioMuteado) {
             try {
                 sonidoMisionCompletada.seekTo(0);
                 sonidoMisionCompletada.start();
@@ -3700,17 +3930,9 @@ public class VistaJuego extends View implements SensorEventListener {
     // Método para limpiar el estado del juego (cuando termina)
     public void limpiarEstadoJuego() {
         try {
-            // Detener música antes de limpiar el estado
-            if (sonidoNivel1 != null) {
-                try {
-                    if (sonidoNivel1.isPlaying()) {
-                        sonidoNivel1.stop();
-                    }
-                    sonidoNivel1.reset();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            // Detener música inmediatamente antes de limpiar el estado
+            detenerMusicaInmediatamente();
+            
             if (sonidoMisionCompletada != null) {
                 try {
                     if (sonidoMisionCompletada.isPlaying()) {

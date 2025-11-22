@@ -59,6 +59,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
 
+    <!-- Botón de silencio (centro inferior) -->
+    <com.example.asteroidesreal.RainbowButton
+        android:id="@+id/btnMute"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="Silenciar sonido"
+        android:src="@android:drawable/ic_lock_silent_mode_off"
+        android:tint="#FFFFFF"
+        android:elevation="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
     <!-- Botón de pausa (esquina inferior derecha) -->
     <com.example.asteroidesreal.RainbowButton
         android:id="@+id/btnPause"

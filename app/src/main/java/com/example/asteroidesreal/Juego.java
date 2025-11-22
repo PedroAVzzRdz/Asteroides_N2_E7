@@ -18,6 +18,7 @@ public class Juego extends Activity {
     private VistaJuego vistaJuego;
     private View starViewGame;
     private ImageButton btnPause;
+    private ImageButton btnMute;
     private ConstraintLayout mainLayout;
     private boolean pausado = false;
     private CountdownView countdownView;
@@ -50,6 +51,8 @@ public class Juego extends Activity {
         btnBackGame.setOnClickListener(v -> {
             // Guardar estado antes de salir
             if (vistaJuego != null) {
+                // Detener completamente la música antes de salir
+                vistaJuego.detenerJuego();
                 vistaJuego.guardarEstadoJuego();
                 vistaJuego.limpiarEstadoJuego();
             }
@@ -58,6 +61,16 @@ public class Juego extends Activity {
         
         btnPause = findViewById(R.id.btnPause);
         btnPause.setOnClickListener(v -> togglePausa());
+        
+        btnMute = findViewById(R.id.btnMute);
+        btnMute.setOnClickListener(v -> toggleMute());
+        // Inicializar el icono después de que vistaJuego esté listo
+        if (vistaJuego != null) {
+            actualizarIconoMute();
+        } else {
+            // Si vistaJuego aún no está listo, usar el icono por defecto (sonido activo)
+            btnMute.setImageResource(android.R.drawable.ic_lock_silent_mode_off);
+        }
         
         // Verificar si el juego ya estaba en curso (para evitar reinicio al rotar)
         SharedPreferences gameState = getSharedPreferences("game_state", MODE_PRIVATE);
@@ -213,6 +226,14 @@ public class Juego extends Activity {
                         vistaJuego.setPausado(false);
                     }
                     
+                    // Forzar reproducción de música después del countdown
+                    vistaJuego.postDelayed(() -> {
+                        if (vistaJuego != null && vistaJuego.isJuegoIniciado() && !vistaJuego.isPausado()) {
+                            // Llamar al método privado a través de iniciarJuego que llama a reproducirMusicaJuego
+                            vistaJuego.iniciarJuego();
+                        }
+                    }, 100);
+                    
                     // Guardar estado después de iniciar
                     vistaJuego.guardarEstadoJuego();
                     
@@ -301,6 +322,26 @@ public class Juego extends Activity {
         dialogoPausa = builder.show();
     }
     
+    private void toggleMute() {
+        if (vistaJuego != null) {
+            boolean nuevoEstado = !vistaJuego.isAudioMuteado();
+            vistaJuego.setAudioMuteado(nuevoEstado);
+            actualizarIconoMute();
+        }
+    }
+    
+    private void actualizarIconoMute() {
+        if (btnMute != null && vistaJuego != null) {
+            if (vistaJuego.isAudioMuteado()) {
+                // Icono de silenciado
+                btnMute.setImageResource(android.R.drawable.ic_lock_silent_mode);
+            } else {
+                // Icono de sonido activo
+                btnMute.setImageResource(android.R.drawable.ic_lock_silent_mode_off);
+            }
+        }
+    }
+    
     
     private boolean isRotating = false; // Flag para detectar si estamos rotando
     private long lastRotationTime = 0; // Tiempo de la última rotación
@@ -309,7 +350,9 @@ public class Juego extends Activity {
     protected void onResume() {
         super.onResume();
         // Actualizar configuración de sensores cuando se resume la actividad
+        // Esto es importante cuando se vuelve desde la configuración
         if (vistaJuego != null) {
+            // Forzar actualización de sensores para asegurar que funcionen
             vistaJuego.actualizarConfiguracionSensores();
             // Si acabamos de rotar (menos de 2 segundos), mantener el juego activo
             long timeSinceRotation = System.currentTimeMillis() - lastRotationTime;

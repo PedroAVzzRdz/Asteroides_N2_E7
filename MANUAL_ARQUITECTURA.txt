@@ -1,0 +1,1025 @@
+================================================================================
+              MANUAL DE ARQUITECTURA - ASTEROIDES REAL 2
+              Cómo Funciona Internamente el Proyecto
+================================================================================
+
+FECHA: 2024
+VERSIÓN: 1.0
+AUTOR: Equipo de Desarrollo
+
+================================================================================
+                            TABLA DE CONTENIDOS
+================================================================================
+
+1. INTRODUCCIÓN Y VISIÓN GENERAL
+2. ARQUITECTURA GENERAL DEL SISTEMA
+3. ESTRUCTURA DE CARPETAS Y ORGANIZACIÓN
+4. TECNOLOGÍAS Y DEPENDENCIAS
+5. COMUNICACIÓN ENTRE MÓDULOS
+6. DECISIONES TÉCNICAS CLAVE
+7. DIAGRAMAS DE ARQUITECTURA
+8. FUNCIONAMIENTO INTERNO DE COMPONENTES
+9. FLUJOS DE DATOS PRINCIPALES
+10. PATRONES DE DISEÑO UTILIZADOS
+
+================================================================================
+                  1. INTRODUCCIÓN Y VISIÓN GENERAL
+================================================================================
+
+1.1 PROPÓSITO DEL DOCUMENTO
+----------------------------
+Este documento explica cómo está construido internamente el proyecto Asteroides 
+Real 2, su arquitectura, estructura, tecnologías utilizadas y cómo los 
+diferentes módulos se comunican entre sí.
+
+1.2 ALCANCE
+-----------
+- Arquitectura general del sistema
+- Estructura de carpetas y organización del código
+- Tecnologías y frameworks utilizados
+- Patrones de comunicación entre módulos
+- Decisiones técnicas y justificaciones
+- Diagramas de arquitectura y flujos
+
+1.3 PERFIL DEL LECTOR
+---------------------
+Este documento está dirigido a:
+- Desarrolladores que trabajarán en el proyecto
+- Arquitectos de software
+- Mantenedores del código
+- Revisores técnicos
+
+================================================================================
+                  2. ARQUITECTURA GENERAL DEL SISTEMA
+================================================================================
+
+2.1 ARQUITECTURA EN CAPAS
+-------------------------
+El proyecto sigue una arquitectura en capas clara y bien definida:
+
+┌─────────────────────────────────────────────────────────────┐
+│                    CAPA DE PRESENTACIÓN                     │
+│  Activities (MainActivity, Juego, Settings, Puntajes)        │
+│  Layouts XML (activity_*.xml, juego.xml)                    │
+│  Custom Views (CountdownView, StarView, AlienView)           │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    CAPA DE LÓGICA                           │
+│  VistaJuego (Motor principal del juego)                     │
+│  - Sistema de Física (movimiento, colisiones)                │
+│  - Sistema de Audio (MediaPlayer, SoundPool)                 │
+│  - Sistema de Sensores (Acelerómetro, Giroscopio)           │
+│  - Sistema de Power-ups                                      │
+│  - Sistema de Niveles                                        │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    CAPA DE MODELOS                          │
+│  Grafico, VectorGrafico (Representación de objetos)         │
+│  Score (Modelo de datos)                                    │
+│  PowerUpOrb (Clase interna)                                 │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    CAPA DE DATOS                            │
+│  ScoreDatabaseHelper (SQLite)                               │
+│  SharedPreferences (Configuración y Estado)                 │
+└─────────────────────────────────────────────────────────────┘
+
+2.2 COMPONENTES PRINCIPALES
+----------------------------
+
++------------------+------------------------------------------+
+| Componente       | Responsabilidad                          |
++------------------+------------------------------------------+
+| MainActivity     | Punto de entrada, menú principal         |
+| Juego            | Activity contenedora del juego            |
+| VistaJuego       | Motor completo del juego (4200+ líneas)   |
+| Grafico          | Representación gráfica de objetos        |
+| VectorGrafico    | Representación vectorial de objetos      |
+| ScoreDatabaseHelper| Gestión de base de datos SQLite        |
+| SettingsActivity | Gestión de configuración                |
+| PuntajesActivity | Visualización de rankings                |
++------------------+------------------------------------------+
+
+2.3 PATRÓN ARQUITECTÓNICO
+--------------------------
+El proyecto utiliza una arquitectura basada en Activities y Custom Views:
+
+- Activities: Gestionan el ciclo de vida y la UI
+- Custom Views: Contienen la lógica de negocio (especialmente VistaJuego)
+- Modelos: Representan datos y entidades del juego
+- Helpers: Gestionan persistencia y servicios
+
+No se utiliza un framework MVC/MVP/MVVM formal, sino una arquitectura 
+adaptada a las necesidades del juego, donde VistaJuego actúa como 
+controlador y modelo combinados.
+
+================================================================================
+              3. ESTRUCTURA DE CARPETAS Y ORGANIZACIÓN
+================================================================================
+
+3.1 ESTRUCTURA PRINCIPAL
+-------------------------
+
+AsteroidesReal2/
+├── app/                          # Módulo principal
+│   ├── build.gradle.kts         # Configuración Gradle
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── java/com/example/asteroidesreal/
+│       │   │   ├── Activities/
+│       │   │   │   ├── MainActivity.java
+│       │   │   │   ├── Juego.java
+│       │   │   │   ├── SettingsActivity.java
+│       │   │   │   ├── PuntajesActivity.java
+│       │   │   │   └── AcercaDeActivity.java
+│       │   │   ├── Core/
+│       │   │   │   ├── VistaJuego.java        # Motor principal
+│       │   │   │   ├── Grafico.java           # Objetos gráficos
+│       │   │   │   └── VectorGrafico.java     # Objetos vectoriales
+│       │   │   ├── Database/
+│       │   │   │   ├── ScoreDatabaseHelper.java
+│       │   │   │   ├── Score.java
+│       │   │   │   └── ScoreAdapter.java
+│       │   │   ├── Views/
+│       │   │   │   ├── CountdownView.java
+│       │   │   │   ├── StarView.java
+│       │   │   │   ├── StarViewGame.java
+│       │   │   │   ├── AlienView.java
+│       │   │   │   └── RainbowButton.java
+│       │   │   └── Utils/
+│       │   │       ├── PerlinNoise.java
+│       │   │       └── Configuracion.java
+│       │   └── res/
+│       │       ├── layout/         # Layouts XML
+│       │       ├── drawable/        # Imágenes y drawables
+│       │       ├── raw/            # Archivos de audio
+│       │       ├── values/         # Strings, colores, estilos
+│       │       └── font/           # Fuentes personalizadas
+│       └── test/                   # Tests unitarios
+├── build.gradle.kts               # Configuración raíz
+└── settings.gradle.kts            # Configuración de módulos
+
+3.2 ORGANIZACIÓN DEL CÓDIGO
+----------------------------
+
+3.2.1 Activities
+-----------------
+Todas las Activities están en el paquete raíz:
+- MainActivity: Menú principal
+- Juego: Activity del juego
+- SettingsActivity: Configuración
+- PuntajesActivity: Rankings
+- AcercaDeActivity: Información
+
+3.2.2 Core (Lógica del Juego)
+-------------------------------
+- VistaJuego: Clase principal con toda la lógica (4200+ líneas)
+- Grafico: Representación de objetos con imágenes
+- VectorGrafico: Representación de objetos vectoriales
+
+3.2.3 Database
+---------------
+- ScoreDatabaseHelper: Extiende SQLiteOpenHelper
+- Score: Modelo de datos para puntuaciones
+- ScoreAdapter: Adapter para RecyclerView
+
+3.2.4 Views Personalizadas
+---------------------------
+- CountdownView: Cuenta regresiva antes del juego
+- StarView/StarViewGame: Estrellas de fondo animadas
+- AlienView: Animación de aliens
+- RainbowButton: Botón personalizado con efectos
+
+3.3 RECURSOS (res/)
+--------------------
+
++------------------+------------------------------------------+
+| Directorio       | Contenido                                 |
++------------------+------------------------------------------+
+| layout/          | 6 archivos XML de layouts                |
+| drawable/        | 40+ imágenes PNG y drawables XML          |
+| raw/             | 7 archivos MP3 de audio                  |
+| values/          | strings.xml, colors.xml, themes.xml       |
+| font/            | Fuente pixel art (upheavtt.ttf)          |
++------------------+------------------------------------------+
+
+================================================================================
+                  4. TECNOLOGÍAS Y DEPENDENCIAS
+================================================================================
+
+4.1 STACK TECNOLÓGICO
+---------------------
+
++------------------+------------------+--------------------------------+
+| Tecnología       | Versión          | Uso                            |
++------------------+------------------+--------------------------------+
+| Lenguaje         | Java 11           | Lenguaje principal             |
+| Plataforma       | Android           | Sistema operativo objetivo      |
+| Min SDK          | API 24 (Android 7)| Versión mínima soportada       |
+| Target SDK       | API 36 (Android 14)| Versión objetivo              |
+| Compile SDK      | API 36            | SDK de compilación             |
+| Build Tool       | Gradle (Kotlin DSL)| Sistema de construcción       |
++------------------+------------------+--------------------------------+
+
+4.2 DEPENDENCIAS PRINCIPALES
+-----------------------------
+
++------------------+------------------------------------------+
+| Dependencia      | Propósito                                 |
++------------------+------------------------------------------+
+| androidx.appcompat| Compatibilidad con versiones antiguas    |
+| com.google.android.material| Material Design Components       |
+| androidx.activity| Activity APIs mejoradas                    |
+| androidx.constraintlayout| Layouts con constraints           |
++------------------+------------------------------------------+
+
+4.3 APIS DE ANDROID UTILIZADAS
+-------------------------------
+
++------------------+------------------------------------------+
+| API              | Uso                                      |
++------------------+------------------------------------------+
+| Canvas           | Renderizado de gráficos                  |
+| MediaPlayer      | Reproducción de música de fondo          |
+| SoundPool        | Efectos de sonido                        |
+| SensorManager    | Gestión de sensores                      |
+| SQLiteDatabase   | Base de datos local                       |
+| SharedPreferences| Almacenamiento clave-valor              |
+| Vibrator         | Vibración háptica                        |
++------------------+------------------------------------------+
+
+4.4 SIN DEPENDENCIAS EXTERNAS
+------------------------------
+El proyecto NO utiliza librerías externas de terceros para:
+- Gráficos (usa Canvas nativo)
+- Física (implementación propia)
+- Audio (MediaPlayer/SoundPool nativos)
+- UI (componentes nativos de Android)
+
+Esto mantiene el APK pequeño y el rendimiento óptimo.
+
+================================================================================
+                  5. COMUNICACIÓN ENTRE MÓDULOS
+================================================================================
+
+5.1 PATRONES DE COMUNICACIÓN
+-----------------------------
+
+5.1.1 Activity → Activity
+---------------------------
+Comunicación mediante Intents explícitos:
+
+    MainActivity → Juego Activity
+    Intent intent = new Intent(this, Juego.class);
+    startActivity(intent);
+
+    MainActivity → SettingsActivity
+    Intent intent = new Intent(this, SettingsActivity.class);
+    startActivity(intent);
+
+5.1.2 Activity → Custom View
+-----------------------------
+Comunicación mediante referencias directas y métodos públicos:
+
+    Juego Activity → VistaJuego
+    - findViewById() obtiene referencia
+    - Llamadas directas a métodos: vistaJuego.setPausado(), 
+      vistaJuego.iniciarJuego()
+    - Listeners: vistaJuego.setOnCountdownRequestListener()
+
+5.1.3 VistaJuego → SharedPreferences
+-------------------------------------
+Comunicación mediante SharedPreferences para configuración:
+
+    VistaJuego lee configuración:
+    SharedPreferences pref = getSharedPreferences("settings", MODE_PRIVATE);
+    modoGraficos = pref.getInt("graficos_mode", 0);
+    sensoresActivados = pref.getBoolean("sensores_activados", true);
+
+    SettingsActivity guarda configuración:
+    SharedPreferences.Editor editor = prefs.edit();
+    editor.putInt("graficos_mode", modoSeleccionado);
+    editor.apply();
+
+5.1.4 VistaJuego → Base de Datos
+----------------------------------
+Comunicación mediante ScoreDatabaseHelper:
+
+    VistaJuego → ScoreDatabaseHelper
+    dbHelper.insertScore(puntaje, nombre);
+
+    PuntajesActivity → ScoreDatabaseHelper
+    List<Score> scores = dbHelper.getAllScores();
+
+5.1.5 VistaJuego → Sensores
+----------------------------
+Comunicación mediante SensorEventListener:
+
+    VistaJuego implementa SensorEventListener
+    SensorManager registra listeners:
+    mSensorManager.registerListener(this, acelerometro, 
+        SensorManager.SENSOR_DELAY_GAME);
+
+    Callback onSensorChanged() recibe datos:
+    public void onSensorChanged(SensorEvent event) {
+        // Procesa datos del sensor
+    }
+
+5.2 FLUJO DE DATOS PRINCIPAL
+-----------------------------
+
+┌─────────────┐
+│   Usuario   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│MainActivity │──────▶│Juego Activity│─────▶│ VistaJuego  │
+└─────────────┘      └─────────────┘      └──────┬───────┘
+       │                                           │
+       │                                           ▼
+       │                                  ┌─────────────┐
+       │                                  │ThreadJuego  │
+       │                                  └──────┬──────┘
+       │                                           │
+       │                                           ▼
+       │                                  ┌─────────────┐
+       │                                  │  Canvas     │
+       │                                  └─────────────┘
+       │
+       ▼
+┌─────────────┐      ┌─────────────┐
+│SettingsActivity│───▶│SharedPreferences│
+└─────────────┘      └─────────────┘
+       │
+       ▼
+┌─────────────┐      ┌─────────────┐
+│PuntajesActivity│───▶│ScoreDatabase│
+└─────────────┘      └─────────────┘
+
+5.3 COMUNICACIÓN ASÍNCRONA
+---------------------------
+
+5.3.1 Thread del Juego
+-----------------------
+VistaJuego utiliza un Thread interno (ThreadJuego) para el loop del juego:
+
+    class ThreadJuego extends Thread {
+        public void run() {
+            while (juegoActivo) {
+                actualizaFisica();
+                postInvalidate();  // Solicita redibujado en UI thread
+                sleep(PERIODO_PROCESO);
+            }
+        }
+    }
+
+5.3.2 postInvalidate()
+----------------------
+Comunicación Thread → UI Thread mediante postInvalidate():
+
+    ThreadJuego (background) → postInvalidate() → UI Thread → onDraw()
+
+5.3.3 Handlers y Callbacks
+---------------------------
+Uso de callbacks para comunicación asíncrona:
+
+    VistaJuego.setOnCountdownRequestListener(() -> {
+        iniciarCountdown();
+    });
+
+================================================================================
+                  6. DECISIONES TÉCNICAS CLAVE
+================================================================================
+
+6.1 ARQUITECTURA MONOLÍTICA EN VISTAJUEGO
+------------------------------------------
+DECISIÓN: VistaJuego contiene toda la lógica del juego (4200+ líneas)
+
+JUSTIFICACIÓN:
+- Simplifica la comunicación entre sistemas (física, audio, sensores)
+- Evita overhead de múltiples clases pequeñas
+- Facilita acceso directo a estado compartido
+- Mejor rendimiento (menos llamadas entre objetos)
+
+TRADE-OFFS:
+- Código más difícil de mantener
+- Violación del principio de responsabilidad única
+- Más difícil de testear unitariamente
+
+6.2 COMPOSICIÓN VS HERENCIA PARA OBJETOS GRÁFICOS
+--------------------------------------------------
+DECISIÓN: Grafico y VectorGrafico son clases paralelas, no hay herencia
+
+JUSTIFICACIÓN:
+- Grafico usa Drawables (imágenes)
+- VectorGrafico dibuja formas vectoriales
+- Diferentes implementaciones de renderizado
+- No comparten suficiente código para justificar herencia
+
+IMPLEMENTACIÓN:
+    Grafico {
+        Drawable drawable;
+        dibujaGrafico(Canvas) { drawable.draw() }
+    }
+    
+    VectorGrafico {
+        TipoVector tipo;
+        dibujarVector(Canvas) { canvas.drawPath() }
+    }
+
+6.3 SHAREDPREFERENCES PARA CONFIGURACIÓN Y ESTADO
+-------------------------------------------------
+DECISIÓN: Usar SharedPreferences para configuración Y estado del juego
+
+JUSTIFICACIÓN:
+- Simple y rápido para datos pequeños
+- No requiere esquema de base de datos
+- Persistencia automática
+- Acceso rápido
+
+ARCHIVOS:
+- "settings": Configuración del usuario
+- "game_state": Estado del juego en curso
+
+6.4 THREAD PROPIO PARA GAME LOOP
+----------------------------------
+DECISIÓN: Thread separado para el loop del juego
+
+JUSTIFICACIÓN:
+- Control preciso del timing (60 FPS)
+- No bloquea UI thread
+- Permite cálculos de física complejos
+- Mejor rendimiento que usar Choreographer
+
+IMPLEMENTACIÓN:
+    PERIODO_PROCESO = 16ms  // ~60 FPS
+    ThreadJuego ejecuta loop continuo
+    postInvalidate() solicita redibujado
+
+6.5 MÚLTIPLES MODOS GRÁFICOS
+-----------------------------
+DECISIÓN: Tres modos gráficos (0=Vector Imagen, 1=Normal, 2=Vector Puro)
+
+JUSTIFICACIÓN:
+- Flexibilidad para diferentes preferencias
+- Modo vector puro para dispositivos de bajo rendimiento
+- Retrocompatibilidad con diferentes estilos
+
+IMPLEMENTACIÓN:
+    if (modoGraficos == 2) {
+        // Usar VectorGrafico
+    } else {
+        // Usar Grafico con Drawables
+    }
+
+6.6 SENSORES COMO CONTROL OPCIONAL
+------------------------------------
+DECISIÓN: Sensores como método de control adicional, no único
+
+JUSTIFICACIÓN:
+- No todos los dispositivos tienen sensores
+- Algunos usuarios prefieren táctil/teclado
+- Flexibilidad de control
+
+IMPLEMENTACIÓN:
+    if (sensoresActivados && sensorDisponible) {
+        // Usar sensores
+    } else if (tactilActivado) {
+        // Usar joystick táctil
+    } else if (tecladoActivado) {
+        // Usar teclado
+    }
+
+6.7 SQLITE PARA PUNTUACIONES
+-----------------------------
+DECISIÓN: SQLite para almacenar puntuaciones históricas
+
+JUSTIFICACIÓN:
+- Necesita ordenamiento y consultas
+- Múltiples registros
+- Top 100 puntuaciones
+- Persistencia permanente
+
+IMPLEMENTACIÓN:
+    ScoreDatabaseHelper extiende SQLiteOpenHelper
+    Tabla: scores (_id, puntaje, fecha, nombre)
+    Consultas: getAllScores() ordenado por puntaje DESC
+
+================================================================================
+                  7. DIAGRAMAS DE ARQUITECTURA
+================================================================================
+
+7.1 DIAGRAMA DE COMPONENTES
+----------------------------
+
+                    ┌─────────────────────┐
+                    │   MainActivity      │
+                    │  (Activity Principal)│
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+                v              v              v
+    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+    │SettingsActivity│ │PuntajesActivity│ │  Juego      │
+    │  (Config)     │  │  (Rankings)   │  │  (Activity)  │
+    └──────────────┘  └──────────────┘  └──────┬───────┘
+                                                 │
+                                                 v
+                                    ┌─────────────────────┐
+                                    │    VistaJuego       │
+                                    │  (Custom View)      │
+                                    │  - Lógica del juego │
+                                    │  - Renderizado      │
+                                    │  - Física           │
+                                    └──────┬──────────────┘
+                                           │
+                    ┌─────────────────────┼─────────────────────┐
+                    │                     │                     │
+                    v                     v                     v
+        ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+        │   ThreadJuego    │  │     Grafico      │  │  VectorGrafico   │
+        │  (Game Loop)      │  │  (Objetos img)   │  │  (Objetos vector)│
+        └──────────────────┘  └────────┬─────────┘  └────────┬─────────┘
+                                         │                     │
+                    ┌───────────────────┼─────────────────────┐
+                    │                   │                     │
+                    v                   v                     v
+        ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+        │  Nave (Grafico)  │  │ Asteroide(Grafico)│  │ Misil (Grafico)  │
+        └──────────────────┘  └──────────────────┘  └──────────────────┘
+                    │
+                    v
+        ┌──────────────────┐
+        │  PowerUpOrb      │
+        │  (Inner Class)   │
+        └──────────────────┘
+
+7.2 DIAGRAMA DE SECUENCIA - INICIO DE JUEGO
+---------------------------------------------
+
+Usuario    MainActivity    Juego    VistaJuego    ThreadJuego    SharedPrefs
+   │             │           │           │              │              │
+   │──start──────>│           │           │              │              │
+   │             │──create───>│           │              │              │
+   │             │           │──create───>│              │              │
+   │             │           │           │──read────────┼──────────────>│
+   │             │           │           │<────────────┼───────────────│
+   │             │           │           │──init───────>│              │
+   │             │           │           │              │──start───────>│
+   │             │           │           │              │              │
+   │             │           │──countdown>│              │              │
+   │             │           │           │              │              │
+   │             │           │──start────>│              │              │
+   │             │           │           │              │──loop───────>│
+   │             │           │           │              │              │
+
+7.3 DIAGRAMA DE FLUJO - CICLO DE JUEGO
+---------------------------------------
+
+    [Inicio ThreadJuego]
+           │
+           v
+    ┌──────────────┐
+    │ actualizaFisica() │
+    └──────┬───────┘
+           │
+           ├──> Actualizar posición nave
+           ├──> Actualizar asteroides
+           ├──> Actualizar misiles
+           ├──> Verificar colisiones
+           ├──> Procesar power-ups
+           ├──> Actualizar audio
+           └──> Actualizar sensores
+           │
+           v
+    ┌──────────────┐
+    │ postInvalidate() │
+    └──────┬───────┘
+           │
+           v
+    ┌──────────────┐
+    │   onDraw()    │
+    └──────┬───────┘
+           │
+           ├──> Dibujar fondo
+           ├──> Dibujar asteroides
+           ├──> Dibujar nave
+           ├──> Dibujar misiles
+           ├──> Dibujar UI (vidas, puntaje)
+           └──> Dibujar power-ups
+           │
+           v
+    ┌──────────────┐
+    │ sleep(16ms)   │
+    └──────┬───────┘
+           │
+           └──> [Repetir]
+
+7.4 DIAGRAMA DE ESTADOS - ESTADO DEL JUEGO
+-------------------------------------------
+
+        [INICIO]
+           │
+           v
+    ┌──────────────┐
+    │  MENÚ        │
+    │  (MainActivity)│
+    └──────┬───────┘
+           │ (Start Game)
+           v
+    ┌──────────────┐
+    │  COUNTDOWN   │
+    │  (Juego)      │
+    └──────┬───────┘
+           │ (3, 2, 1, Go!)
+           v
+    ┌──────────────┐
+    │  JUGANDO     │──┐
+    │  (VistaJuego)│  │ (Pause)
+    └──────┬───────┘  │
+           │          │
+           │ (Game Over)│
+           v          │
+    ┌──────────────┐  │
+    │  PAUSADO     │<─┘
+    │  (VistaJuego)│
+    └──────┬───────┘
+           │ (Resume)
+           v
+    ┌──────────────┐
+    │  JUGANDO     │
+    └──────┬───────┘
+           │ (All Asteroids Destroyed)
+           v
+    ┌──────────────┐
+    │  BONUS       │
+    │  (Pantalla)  │
+    └──────┬───────┘
+           │ (Next Level)
+           v
+    ┌──────────────┐
+    │  TRANSICIÓN  │
+    └──────┬───────┘
+           │
+           v
+    ┌──────────────┐
+    │  JUGANDO     │
+    │  (Nivel++)   │
+    └──────────────┘
+
+================================================================================
+              8. FUNCIONAMIENTO INTERNO DE COMPONENTES
+================================================================================
+
+8.1 VISTAJUEGO - MOTOR PRINCIPAL
+----------------------------------
+
+8.1.1 Responsabilidades
+-----------------------
+VistaJuego es el componente más complejo (4200+ líneas) y contiene:
+
+- Lógica de física y movimiento
+- Sistema de colisiones
+- Renderizado de gráficos
+- Gestión de audio
+- Control de sensores
+- Sistema de niveles
+- Sistema de power-ups
+- Gestión de estado
+
+8.1.2 Ciclo de Vida Interno
+---------------------------
+1. Constructor: Inicializa variables, restaura estado
+2. onSizeChanged(): Calcula posiciones iniciales
+3. onAttachedToWindow(): Inicia ThreadJuego
+4. ThreadJuego.run(): Loop principal
+   - actualizaFisica() cada 16ms
+   - postInvalidate() solicita redibujado
+5. onDraw(): Renderiza frame actual
+6. onDetachedFromWindow(): Detiene thread, libera recursos
+
+8.1.3 Estructura Interna
+------------------------
+    VistaJuego {
+        // Estado del juego
+        int nivel, vidas, puntaje;
+        boolean juegoIniciado, pausado;
+        
+        // Objetos del juego
+        Grafico nave;
+        List<Grafico> asteroides;
+        List<Grafico> misiles;
+        
+        // Sistemas
+        ThreadJuego thread;
+        SensorManager mSensorManager;
+        MediaPlayer sonidoNivel1;
+        ScoreDatabaseHelper dbHelper;
+        
+        // Métodos principales
+        actualizaFisica() { ... }
+        onDraw(Canvas) { ... }
+        iniciarJuego() { ... }
+    }
+
+8.2 THREADJUEGO - GAME LOOP
+----------------------------
+
+8.2.1 Funcionamiento
+--------------------
+ThreadJuego es una clase interna de VistaJuego que ejecuta el loop del juego:
+
+    class ThreadJuego extends Thread {
+        public void run() {
+            while (juegoActivo && !interrupted()) {
+                long ahora = System.currentTimeMillis();
+                
+                if (ultimoProceso + PERIODO_PROCESO <= ahora) {
+                    actualizaFisica();
+                    postInvalidate();
+                    ultimoProceso = ahora;
+                }
+                
+                try {
+                    sleep(1);  // Evitar CPU spinning
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }
+    }
+
+8.2.2 Timing
+------------
+- PERIODO_PROCESO = 16ms → ~60 FPS
+- actualizaFisica() se llama cada 16ms
+- postInvalidate() solicita redibujado en UI thread
+- sleep(1) evita consumo excesivo de CPU
+
+8.3 GRAFICO - REPRESENTACIÓN DE OBJETOS
+----------------------------------------
+
+8.3.1 Estructura
+----------------
+    class Grafico {
+        Drawable drawable;      // Imagen a dibujar
+        int cenX, cenY;         // Posición del centro
+        double incX, incY;      // Velocidad
+        double angulo;          // Rotación
+        int radioColision;       // Radio de colisión
+        View view;              // Vista contenedora
+    }
+
+8.3.2 Uso
+---------
+- Nave: Un Grafico con drawable de nave
+- Asteroides: Lista de Grafico, cada uno con drawable de asteroide
+- Misiles: Lista de Grafico con drawables pequeños
+- Escudo: Grafico que sigue la posición de la nave
+
+8.4 VECTORGRAFICO - GRÁFICOS VECTORIALES
+-----------------------------------------
+
+8.4.1 Estructura
+----------------
+    class VectorGrafico {
+        TipoVector tipo;        // ASTEROIDE, NAVE, MISIL
+        int cenX, cenY;          // Posición
+        double incX, incY;       // Velocidad
+        float[] puntos;         // Puntos del polígono (asteroides)
+        float radio;            // Radio (asteroides)
+        Paint paint;            // Estilo de dibujo
+    }
+
+8.4.2 Renderizado
+-----------------
+- Asteroides: Polígonos irregulares generados aleatoriamente
+- Nave: Triángulo dibujado con Path
+- Misil: Línea vertical con punto brillante
+
+8.5 SCOREDATABASEHELPER - PERSISTENCIA
+----------------------------------------
+
+8.5.1 Estructura
+----------------
+    class ScoreDatabaseHelper extends SQLiteOpenHelper {
+        static final String DATABASE_NAME = "scores.db";
+        static final int DATABASE_VERSION = 2;
+        
+        onCreate() {
+            // Crea tabla scores
+        }
+        
+        insertScore(int puntaje, String nombre) {
+            // Inserta nueva puntuación
+        }
+        
+        getAllScores() {
+            // Obtiene top 100 ordenado por puntaje DESC
+        }
+    }
+
+8.5.2 Esquema
+-------------
+    CREATE TABLE scores (
+        _id INTEGER PRIMARY KEY AUTOINCREMENT,
+        puntaje INTEGER NOT NULL,
+        fecha INTEGER NOT NULL,
+        nombre TEXT NOT NULL
+    );
+
+================================================================================
+                  9. FLUJOS DE DATOS PRINCIPALES
+================================================================================
+
+9.1 FLUJO DE INICIALIZACIÓN
+----------------------------
+
+1. Usuario abre app
+   └─> MainActivity.onCreate()
+       ├─> Carga SharedPreferences "settings"
+       ├─> Inicializa MediaPlayer (música menú)
+       └─> Muestra UI
+
+2. Usuario presiona "Jugar"
+   └─> MainActivity → Intent → Juego Activity
+       └─> Juego.onCreate()
+           ├─> Crea VistaJuego
+           ├─> VistaJuego constructor
+           │   ├─> Lee SharedPreferences "game_state"
+           │   ├─> Restaura estado si existe
+           │   └─> Inicializa componentes
+           └─> Inicia countdown
+
+3. Countdown termina
+   └─> VistaJuego.iniciarJuego()
+       ├─> Genera asteroides
+       ├─> Inicia ThreadJuego
+       └─> Reproduce música
+
+9.2 FLUJO DE GAME LOOP
+----------------------
+
+    ThreadJuego.run()
+         │
+         ├─> actualizaFisica()
+         │   ├─> Actualiza posición nave (según controles)
+         │   ├─> Actualiza asteroides (movimiento)
+         │   ├─> Actualiza misiles (movimiento)
+         │   ├─> Verifica colisiones
+         │   │   ├─> Nave vs Asteroide
+         │   │   └─> Misil vs Asteroide
+         │   ├─> Procesa fragmentación
+         │   ├─> Actualiza power-ups
+         │   └─> Verifica fin de nivel
+         │
+         ├─> postInvalidate()
+         │
+         └─> sleep(16ms)
+             └─> [Repetir]
+
+    UI Thread recibe invalidate
+         │
+         └─> onDraw(Canvas)
+             ├─> Dibuja fondo (StarViewGame)
+             ├─> Dibuja asteroides
+             ├─> Dibuja nave
+             ├─> Dibuja misiles
+             ├─> Dibuja escudo (si activo)
+             ├─> Dibuja power-ups
+             └─> Dibuja UI (vidas, puntaje, nivel)
+
+9.3 FLUJO DE CONTROL
+--------------------
+
+Táctil:
+    onTouchEvent() → actualizarJoystick() → 
+    direccionJoystick, velocidadJoystick → 
+    actualizaFisica() → nave.incrementaPos()
+
+Teclado:
+    onKeyDown() → teclaArriba/teclaIzquierda/teclaDerecha → 
+    actualizaFisica() → nave.incrementaPos()
+
+Sensores:
+    onSensorChanged() → valoresGiroscopio/valoresAcelerometro → 
+    giroNave, aceleracionNave → 
+    actualizaFisica() → nave.incrementaPos()
+
+9.4 FLUJO DE COLISIÓN
+---------------------
+
+1. actualizaFisica() detecta colisión
+   └─> nave.verificaColision(asteroide) == true
+
+2. Verifica protección
+   ├─> Si inmune: no hay daño
+   ├─> Si escudo activo: escudo se destruye
+   └─> Si no protegido: pierde vida
+
+3. Si pierde vida
+   ├─> vidas--
+   ├─> Activa inmunidad temporal
+   ├─> Reproduce sonido de colisión
+   ├─> Vibra dispositivo
+   └─> Si vidas == 0: juego termina
+
+9.5 FLUJO DE FIN DE NIVEL
+--------------------------
+
+1. Todos los asteroides destruidos
+   └─> verificarAvanceNivel() detecta lista vacía
+
+2. Inicia misión completada
+   └─> iniciarMisionCompletada()
+       ├─> Calcula bonuses
+       ├─> Cambia estado a MISION_COMPLETADA
+       └─> Reproduce sonido
+
+3. Muestra pantalla de bonus
+   └─> Estado cambia a PANTALLA_BONUS
+       ├─> Anima bonuses
+       └─> Muestra puntuación total
+
+4. Avanza al siguiente nivel
+   └─> avanzarSiguienteNivel()
+       ├─> nivel++
+       ├─> Genera nuevos asteroides
+       └─> Inicia countdown
+
+================================================================================
+              10. PATRONES DE DISEÑO UTILIZADOS
+================================================================================
+
+10.1 SINGLETON (IMPLÍCITO)
+---------------------------
+- ScoreDatabaseHelper: Una instancia por contexto
+- SharedPreferences: Acceso singleton por nombre
+
+10.2 OBSERVER
+-------------
+- SensorEventListener: VistaJuego observa cambios de sensores
+- View.invalidate(): Sistema observa cambios para redibujar
+
+10.3 STRATEGY
+------------
+- Modos gráficos: Diferentes estrategias de renderizado
+  * Modo 0: Grafico con imágenes vectoriales
+  * Modo 1: Grafico con imágenes normales
+  * Modo 2: VectorGrafico con formas vectoriales
+
+10.4 COMPOSITION
+----------------
+- PowerUpOrb contiene Grafico (composición, no herencia)
+- VistaJuego contiene múltiples sistemas (física, audio, sensores)
+
+10.5 FACTORY (IMPLÍCITO)
+-------------------------
+- Generación de asteroides: crearAsteroidesNivel()
+- Generación de fragmentos: crearFragmentos()
+- Generación de power-ups: crearPowerUpOrb()
+
+10.6 STATE
+----------
+- EstadoMision enum: NORMAL, MISION_COMPLETADA, PANTALLA_BONUS, TRANSICION
+- EstadoEscudo enum: NONE, APARICIENDO, ACTIVO, DESTRUYENDO
+- Estados del juego: juegoIniciado, pausado, juegoTerminado
+
+================================================================================
+                              CONCLUSIÓN
+================================================================================
+
+Este documento ha explicado la arquitectura interna del proyecto Asteroides 
+Real 2, incluyendo:
+
+- Arquitectura en capas clara y bien definida
+- Estructura de carpetas organizada
+- Tecnologías nativas de Android sin dependencias externas
+- Comunicación entre módulos mediante referencias directas, SharedPreferences 
+  y base de datos
+- Decisiones técnicas justificadas
+- Diagramas de arquitectura y flujos
+- Funcionamiento interno de componentes clave
+- Patrones de diseño utilizados
+
+El proyecto sigue una arquitectura adaptada a las necesidades de un juego 
+arcade, priorizando rendimiento y simplicidad sobre separación estricta de 
+responsabilidades.
+
+================================================================================
+                            FIN DEL DOCUMENTO
+================================================================================
+
+Versión: 1.0
+Última Actualización: 2024
+
+

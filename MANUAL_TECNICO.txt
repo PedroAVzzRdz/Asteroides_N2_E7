@@ -1,0 +1,1860 @@
+================================================================================
+                    MANUAL TÉCNICO - ASTEROIDES REAL 2
+                    Aplicación Android de Videojuego Arcade
+================================================================================
+
+FECHA DE CREACIÓN: 2024
+VERSIÓN DEL DOCUMENTO: 1.0
+AUTOR: Equipo de Desarrollo
+LICENCIA: Propietaria
+
+================================================================================
+                            TABLA DE CONTENIDOS
+================================================================================
+
+1. INFORMACIÓN GENERAL DEL PROYECTO
+2. ARQUITECTURA TÉCNICA
+3. COMPONENTES Y CLASES
+4. SISTEMA DE BASE DE DATOS
+5. RECURSOS Y ASSETS
+6. SISTEMAS DE ENTRADA Y CONTROL
+7. SISTEMA DE AUDIO
+8. SISTEMA DE GRÁFICOS
+9. SISTEMA DE FÍSICA Y COLISIONES
+10. GESTIÓN DE ESTADO Y PERSISTENCIA
+11. CICLO DE VIDA DE LA APLICACIÓN
+12. CONFIGURACIÓN Y PREFERENCIAS
+13. TROUBLESHOOTING Y SOLUCIÓN DE PROBLEMAS
+14. DIAGRAMAS DE ARQUITECTURA DETALLADOS
+15. REFERENCIAS TÉCNICAS
+
+================================================================================
+                    1. INFORMACIÓN GENERAL DEL PROYECTO
+================================================================================
+
+1.1 DESCRIPCIÓN
+---------------
+Asteroides Real 2 es una aplicación Android que implementa un videojuego 
+arcade estilo "Asteroids" con características modernas. El juego permite al 
+jugador controlar una nave espacial que debe destruir asteroides mientras 
+evita colisiones.
+
+1.2 CARACTERÍSTICAS PRINCIPALES
+--------------------------------
+- Control mediante múltiples métodos: táctil (joystick), teclado, sensores
+- Sistema de niveles progresivos con dificultad creciente
+- Sistema de puntuación con base de datos SQLite
+- Múltiples modos gráficos (imagen, vector, vector puro)
+- Sistema de audio completo con música y efectos de sonido
+- Sistema de vidas y power-ups
+- Persistencia de estado del juego
+- Soporte para rotación de pantalla
+
+1.3 TECNOLOGÍAS UTILIZADAS
+--------------------------
++------------------+------------------------------------------+
+| Tecnología       | Versión/Detalles                         |
++------------------+------------------------------------------+
+| Lenguaje         | Java                                     |
+| Plataforma       | Android                                  |
+| API Mínima       | Android API 21 (Lollipop 5.0)           |
+| API Objetivo     | Android API 33+                         |
+| Base de Datos    | SQLite                                   |
+| Gráficos         | Canvas API nativo de Android             |
+| Audio            | MediaPlayer, SoundPool                   |
+| Sensores         | SensorManager (Acelerómetro, Giroscopio)  |
+| Persistencia     | SharedPreferences                        |
++------------------+------------------------------------------+
+
+1.4 ESTRUCTURA DEL PROYECTO
+---------------------------
+AsteroidesReal2/
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/example/asteroidesreal/
+│   │   │   │   ├── MainActivity.java
+│   │   │   │   ├── Juego.java
+│   │   │   │   ├── VistaJuego.java
+│   │   │   │   ├── Grafico.java
+│   │   │   │   ├── VectorGrafico.java
+│   │   │   │   ├── ScoreDatabaseHelper.java
+│   │   │   │   ├── Score.java
+│   │   │   │   ├── SettingsActivity.java
+│   │   │   │   ├── PuntajesActivity.java
+│   │   │   │   ├── RainbowButton.java
+│   │   │   │   ├── StarViewGame.java
+│   │   │   │   ├── AlienView.java
+│   │   │   │   └── CountdownView.java
+│   │   │   ├── res/
+│   │   │   │   ├── layout/
+│   │   │   │   ├── drawable/
+│   │   │   │   ├── raw/
+│   │   │   │   ├── values/
+│   │   │   │   └── font/
+│   │   │   └── AndroidManifest.xml
+│   │   └── test/
+│   └── build.gradle
+├── README.md
+└── MANUAL_TECNICO.txt
+
+================================================================================
+                        2. ARQUITECTURA TÉCNICA
+================================================================================
+
+2.1 PATRÓN ARQUITECTÓNICO
+-------------------------
+El proyecto utiliza una arquitectura basada en Activities y Custom Views:
+
+    MainActivity (Activity Principal)
+           |
+           ├──> SettingsActivity (Configuración)
+           ├──> PuntajesActivity (Rankings)
+           └──> Juego (Activity del Juego)
+                    |
+                    └──> VistaJuego (Custom View - Lógica del Juego)
+
+2.2 COMPONENTES PRINCIPALES
+----------------------------
+
++------------------+------------------------------------------+
+| Componente       | Responsabilidad                          |
++------------------+------------------------------------------+
+| MainActivity      | Pantalla principal, navegación           |
+| Juego            | Activity contenedora del juego            |
+| VistaJuego       | Lógica completa del juego, renderizado   |
+| Grafico          | Representación gráfica de objetos         |
+| VectorGrafico    | Representación vectorial de objetos       |
+| ScoreDatabase    | Persistencia de puntuaciones              |
+| SettingsActivity | Gestión de configuración                  |
++------------------+------------------------------------------+
+
+2.3 FLUJO DE DATOS PRINCIPAL
+-----------------------------
+
+[Usuario] --> [Juego Activity] --> [VistaJuego] --> [ThreadJuego]
+                                                          |
+                                                          v
+[Canvas] <-- [onDraw()] <-- [actualizaFisica()] <-- [Game Loop]
+
+2.4 DIAGRAMA DE ARQUITECTURA UML SIMPLIFICADO
+----------------------------------------------
+
+                    ┌─────────────────────┐
+                    │   MainActivity      │
+                    │  (Activity Principal)│
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+                v              v              v
+    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+    │SettingsActivity│ │PuntajesActivity│ │  Juego       │
+    │  (Config)     │  │  (Rankings)   │  │  (Activity)  │
+    └──────────────┘  └──────────────┘  └──────┬───────┘
+                                                 │
+                                                 v
+                                    ┌─────────────────────┐
+                                    │    VistaJuego       │
+                                    │  (Custom View)      │
+                                    │  - Lógica del juego │
+                                    │  - Renderizado      │
+                                    │  - Física           │
+                                    └──────┬──────────────┘
+                                           │
+                    ┌─────────────────────┼─────────────────────┐
+                    │                     │                     │
+                    v                     v                     v
+        ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+        │   ThreadJuego    │  │     Grafico      │  │  VectorGrafico   │
+        │  (Game Loop)      │  │  (Objetos img)   │  │  (Objetos vector)│
+        └──────────────────┘  └────────┬─────────┘  └────────┬─────────┘
+                                        │                     │
+                    ┌───────────────────┼─────────────────────┐
+                    │                   │                     │
+                    v                   v                     v
+        ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+        │  Nave (Grafico)  │  │ Asteroide(Grafico)│  │ Misil (Grafico)  │
+        └──────────────────┘  └──────────────────┘  └──────────────────┘
+                    │
+                    v
+        ┌──────────────────┐
+        │  PowerUpOrb      │
+        │  (Inner Class)   │
+        │  - ESCUDO        │
+        │  - VELOCIDAD     │
+        │  - DISPARO_MEJ   │
+        └──────────────────┘
+
+2.5 DIAGRAMA DE COMPONENTES
+----------------------------
+
+┌─────────────────────────────────────────────────────────────┐
+│                      CAPA DE PRESENTACIÓN                    │
+├─────────────────────────────────────────────────────────────┤
+│  MainActivity  │  Juego  │  SettingsActivity  │  PuntajesAct │
+└───────┬───────────┬───────────┬───────────────────┬────────┘
+        │           │           │                   │
+        │           │           │                   │
+┌───────┴───────────┴───────────┴───────────────────┴────────┐
+│                      CAPA DE LÓGICA                          │
+├─────────────────────────────────────────────────────────────┤
+│                         VistaJuego                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Control      │  │ Física       │  │ Renderizado   │      │
+│  │ - Táctil     │  │ - Movimiento │  │ - Canvas      │      │
+│  │ - Teclado    │  │ - Colisiones │  │ - Animaciones │      │
+│  │ - Sensores   │  │ - Fragmentos │  │ - UI          │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└───────┬─────────────────────────────────────────────────────┘
+        │
+┌───────┴─────────────────────────────────────────────────────┐
+│                      CAPA DE DATOS                           │
+├─────────────────────────────────────────────────────────────┤
+│  ScoreDatabaseHelper  │  SharedPreferences  │  MediaPlayer   │
+│  (SQLite)            │  (Config/State)    │  (Audio)       │
+└─────────────────────────────────────────────────────────────┘
+
+2.6 CICLO DE RENDERIZADO
+------------------------
+1. ThreadJuego ejecuta loop a ~60 FPS (PERIODO_PROCESO = 16ms)
+2. actualizaFisica() calcula posiciones, colisiones, física
+3. postInvalidate() solicita redibujado
+4. onDraw() renderiza frame en Canvas
+5. Repetir
+
+================================================================================
+                        3. COMPONENTES Y CLASES
+================================================================================
+
+3.1 VISTAJUEGO (Clase Principal del Juego)
+-------------------------------------------
+
+3.1.1 Descripción
+-----------------
+VistaJuego es una Custom View que extiende View e implementa 
+SensorEventListener. Contiene toda la lógica del juego, física, colisiones,
+renderizado y gestión de estado.
+
+3.1.2 Jerarquía de Clase
+-------------------------
+java.lang.Object
+    └── android.view.View
+            └── com.example.asteroidesreal.VistaJuego
+
+3.1.3 Interfaces Implementadas
+-------------------------------
+- SensorEventListener (para sensores de movimiento)
+
+3.1.4 Variables de Instancia Principales
+-----------------------------------------
+
++--------------------------+------------------+--------------------------------+
+| Variable                 | Tipo             | Descripción                    |
++--------------------------+------------------+--------------------------------+
+| mSensorManager           | SensorManager    | Gestor de sensores             |
+| acelerometro             | Sensor           | Sensor de acelerómetro         |
+| giroscopio               | Sensor           | Sensor de giroscopio           |
+| sensoresActivados        | boolean          | Estado de activación sensores  |
+| valoresGiroscopio        | float[3]         | Valores del giroscopio         |
+| valoresAcelerometro      | float[3]         | Valores del acelerómetro       |
+| asteroides               | List<Grafico>    | Lista de asteroides activos    |
+| numAsteroides            | int              | Cantidad de asteroides         |
+| nave                     | Grafico          | Objeto gráfico de la nave      |
+| misiles                  | ArrayList<Grafico>| Lista de misiles activos       |
+| tiempoMisiles            | ArrayList<Integer>| Tiempo de vida de misiles      |
+| modoGraficos             | int              | Modo gráfico (0,1,2)           |
+| thread                   | ThreadJuego      | Thread del loop del juego      |
+| giroNave                 | double           | Ángulo de rotación de la nave  |
+| aceleracionNave          | double           | Aceleración de la nave         |
+| direccionJoystick        | double           | Dirección del joystick (grados)|
+| velocidadJoystick        | double           | Intensidad joystick (0-1)      |
+| joystickCenterX          | float            | Centro X del joystick          |
+| joystickCenterY          | float            | Centro Y del joystick          |
+| joystickRadius           | float            | Radio del joystick (160dp)     |
+| joystickThumbRadius      | float            | Radio del thumb (60dp)         |
+| puntaje                  | int              | Puntuación actual              |
+| juegoTerminado           | boolean          | Estado de finalización         |
+| dbHelper                 | ScoreDatabaseHelper| Helper de base de datos        |
+| vidas                    | int              | Vidas restantes                |
+| nivel                    | int              | Nivel actual                   |
+| estadoMision             | EstadoMision      | Estado de la misión            |
+| sonidoNivel1             | MediaPlayer      | Música de fondo del nivel      |
+| audioMuteado             | boolean          | Estado de silencio             |
+| pausado                  | boolean          | Estado de pausa                |
+| juegoIniciado            | boolean          | Flag de inicio del juego       |
++--------------------------+------------------+--------------------------------+
+
+3.1.5 Constantes Importantes
+-----------------------------
+
++--------------------------+--------+------------------------------------------+
+| Constante                | Valor | Descripción                              |
++--------------------------+--------+------------------------------------------+
+| PERIODO_PROCESO          | 16     | ms entre frames (~60 FPS)                |
+| MAX_VELOCIDAD_NAVE       | 20.0   | Velocidad máxima de la nave              |
+| PASO_ACELERACION_NAVE    | 1.2    | Incremento de aceleración                |
+| PASO_GIRO_NAVE           | 3.0    | Velocidad de giro                        |
+| FRICCION                 | 0.98   | Factor de fricción                       |
+| PASO_VELOCIDAD_MISIL     | 20     | Velocidad de misiles                     |
+| DISPAROS_POR_SECUENCIA   | 3      | Disparos en una secuencia                |
+| DELAY_ENTRE_DISPAROS_MS  | 200    | ms entre disparos en secuencia            |
+| COOLDOWN_DISPARO_MS      | 600    | ms de cooldown después de secuencia       |
+| TIEMPO_MOSTRAR_NIVEL_MS  | 2000   | ms mostrando "NIVEL X"                   |
+| DURACION_POWERUP_MS      | 10000  | ms de duración de power-up               |
+| DURACION_COOLDOWN_MS     | 3000   | ms de cooldown después de rotación        |
+| MAX_TRAIL_POINTS         | 15     | Puntos máximos en estela de nave          |
++--------------------------+--------+------------------------------------------+
+
+3.1.6 Métodos Principales
+--------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Descripción                              |
++--------------------------+------------------------------------------+
+| onDraw(Canvas)           | Renderiza el frame actual                |
+| actualizaFisica()        | Actualiza física, colisiones, estado    |
+| iniciarJuego()           | Inicializa nuevo juego                   |
+| detenerJuego()           | Detiene el juego y limpia recursos      |
+| generarAsteroidesNivel() | Genera asteroides para el nivel          |
+| verificaColisiones()     | Detecta colisiones entre objetos        |
+| procesarDisparo()        | Maneja el sistema de disparos           |
+| activarSensores()        | Registra listeners de sensores          |
+| desactivarSensores()     | Desregistra listeners de sensores        |
+| onSensorChanged()        | Callback de cambios en sensores          |
+| setPausado(boolean)      | Pausa/reanuda el juego                   |
+| setAudioMuteado(boolean) | Silencia/activa el audio                 |
+| guardarEstadoJuego()     | Persiste estado en SharedPreferences     |
+| limpiarEstadoJuego()     | Limpia estado guardado                   |
++--------------------------+------------------------------------------+
+
+3.2 GRAFICO (Clase de Representación Gráfica)
+----------------------------------------------
+
+3.2.1 Descripción
+-----------------
+Clase que encapsula un objeto gráfico con posición, velocidad, rotación y
+colisiones. Utilizada para nave, asteroides y misiles en modo gráfico normal.
+
+3.2.2 Variables Principales
+----------------------------
+
++------------------+------------------+--------------------------------+
+| Variable         | Tipo             | Descripción                    |
++------------------+------------------+--------------------------------+
+| drawable         | Drawable         | Imagen a dibujar               |
+| cenX, cenY       | int              | Posición del centro            |
+| ancho, alto      | int              | Dimensiones                  |
+| incX, incY       | double           | Velocidad de desplazamiento     |
+| angulo           | double           | Ángulo de rotación             |
+| rotacion         | double           | Velocidad de rotación           |
+| radioColision    | int              | Radio para detección colisión   |
+| view             | View             | Vista contenedora              |
++------------------+------------------+--------------------------------+
+
+3.2.3 Métodos Principales
+-------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Descripción                              |
++--------------------------+------------------------------------------+
+| dibujaGrafico(Canvas)    | Dibuja el gráfico en el canvas           |
+| incrementaPos(double)    | Actualiza posición y rotación             |
+| distancia(Grafico)      | Calcula distancia a otro gráfico         |
+| verificaColision(Grafico)| Verifica colisión con otro gráfico       |
++--------------------------+------------------------------------------+
+
+3.2.4 MODELO DE DATOS COMPLETO - USO DE GRAFICO
+------------------------------------------------
+
+3.2.4.1 Patrón de Diseño
+-------------------------
+La clase Grafico utiliza el patrón de COMPOSICIÓN (no herencia) para 
+representar diferentes tipos de objetos del juego. No existen subclases de 
+Grafico; en su lugar, se crean instancias de Grafico con diferentes 
+Drawables y configuraciones según el tipo de objeto.
+
+3.2.4.2 Objetos del Juego que Utilizan Grafico
+-----------------------------------------------
+
++------------------+------------------+--------------------------------+
+| Objeto           | Drawable         | Configuración Especial         |
++------------------+------------------+--------------------------------+
+| Nave             | nave1.png        | - Radio colisión: (ancho+alto)/4|
+|                  | navevector.png   | - Controlado por usuario       |
+|                  |                  | - Velocidad limitada            |
++------------------+------------------+--------------------------------+
+| Asteroide        | asteroide1.png   | - Radio colisión: ancho/3      |
+|                  | asteroidevector.png| - Tamaño reducido 40%         |
+|                  |                  | - Velocidad aleatoria          |
+|                  |                  | - Rotación continua             |
++------------------+------------------+--------------------------------+
+| Misil            | (pequeño)        | - Radio colisión: pequeño      |
+|                  |                  | - Velocidad fija alta           |
+|                  |                  | - Tiempo de vida limitado       |
++------------------+------------------+--------------------------------+
+| Escudo           | es1.png - es4.png| - Sigue posición de nave      |
+|                  |                  | - Estados de animación          |
+|                  |                  | - Radio mayor que nave          |
++------------------+------------------+--------------------------------+
+| PowerUpOrb       | pe.png, pv.png,  | - Tamaño reducido 21%          |
+|                  | pd.png           | - Movimiento flotante           |
+|                  |                  | - Efectos visuales              |
++------------------+------------------+--------------------------------+
+
+3.2.4.3 Estructura de PowerUpOrb (Clase Interna)
+-------------------------------------------------
+PowerUpOrb es una clase interna de VistaJuego que UTILIZA Grafico para 
+representación visual, pero tiene lógica adicional:
+
+class PowerUpOrb {
+    float x, y;              // Posición
+    float vx, vy;            // Velocidad
+    PowerUpType tipo;        // ESCUDO, VELOCIDAD, DISPARO_MEJORADO
+    Grafico grafico;         // Representación visual (COMPOSICIÓN)
+    float floatOffset;       // Offset para animación flotante
+    float pulseAlpha;        // Alpha para efecto pulsante
+    boolean activa;          // Estado activo/inactivo
+}
+
+3.2.4.4 Relación con VectorGrafico
+------------------------------------
+VectorGrafico es una clase PARALELA a Grafico (no hereda de ella) que 
+proporciona la misma funcionalidad pero con renderizado vectorial puro:
+
+    Grafico                    VectorGrafico
+    (Modo 0, 1)                (Modo 2)
+         │                           │
+         ├──> Nave                  ├──> NaveVector
+         ├──> Asteroide             ├──> AsteroideVector
+         └──> Misil                 └──> MisilVector
+
+Ambas clases implementan la misma interfaz conceptual pero con diferentes
+métodos de renderizado.
+
+3.2.4.5 Flujo de Creación de Objetos
+-------------------------------------
+
+Creación de Nave:
+    1. Cargar Drawable según modo gráfico
+    2. new Grafico(view, drawable)
+    3. Establecer posición inicial (centro pantalla)
+    4. Configurar radio de colisión
+
+Creación de Asteroide:
+    1. Cargar Drawable según modo gráfico
+    2. Reducir tamaño a 40% del original
+    3. new Grafico(view, drawableReducido)
+    4. Posición aleatoria (validada para no estar cerca de nave)
+    5. Velocidad aleatoria con factor de nivel
+    6. Rotación aleatoria
+    7. Agregar a fragmentacionAsteroides con nivel 0
+
+Creación de Misil:
+    1. Crear Drawable pequeño
+    2. new Grafico(view, drawable)
+    3. Posición: posición actual de nave
+    4. Velocidad: dirección del ángulo de nave * PASO_VELOCIDAD_MISIL
+    5. Agregar a lista misiles con tiempo de vida
+
+Creación de PowerUpOrb:
+    1. Determinar tipo aleatorio (ESCUDO, VELOCIDAD, DISPARO_MEJORADO)
+    2. Cargar Drawable correspondiente (pe.png, pv.png, pd.png)
+    3. Reducir tamaño a 21% del original
+    4. new Grafico(view, drawableReducido)
+    5. new PowerUpOrb(x, y, tipo, context) -> crea Grafico interno
+    6. Agregar a lista orbesPowerUp
+
+3.3 VECTORGRAFICO (Clase de Gráficos Vectoriales)
+--------------------------------------------------
+
+3.3.1 Descripción
+-----------------
+Similar a Grafico pero dibuja formas vectoriales en lugar de imágenes.
+Utilizada en modo gráfico "vector puro" (modo 2).
+
+3.3.2 Tipos de Vector
+---------------------
+
++------------------+------------------------------------------+
+| TipoVector       | Descripción                              |
++------------------+------------------------------------------+
+| ASTEROIDE        | Polígono irregular generado              |
+| NAVE             | Triángulo apuntando hacia arriba         |
+| MISIL            | Línea vertical con punto brillante       |
++------------------+------------------------------------------+
+
+3.3.3 Características
+---------------------
+- Asteroides: Polígonos irregulares con 6-9 lados, radio variable
+- Nave: Triángulo blanco con borde gris
+- Misil: Línea amarilla con punto naranja en la punta
+
+3.4 SCOREDATABASEHELPER (Gestor de Base de Datos)
+--------------------------------------------------
+
+3.4.1 Descripción
+-----------------
+Extiende SQLiteOpenHelper para gestionar la base de datos de puntuaciones.
+
+3.4.2 Esquema de Base de Datos
+-------------------------------
+
+Tabla: scores
++------------------+------------------+--------------------------------+
+| Columna          | Tipo            | Descripción                    |
++------------------+------------------+--------------------------------+
+| _id              | INTEGER PRIMARY  | ID autoincremental            |
+| puntaje          | INTEGER NOT NULL| Puntuación del jugador        |
+| fecha            | INTEGER NOT NULL| Timestamp (System.currentTime)|
+| nombre           | TEXT NOT NULL   | Nombre del jugador            |
++------------------+------------------+--------------------------------+
+
+3.4.3 Métodos Principales
+-------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Descripción                              |
++--------------------------+------------------------------------------+
+| insertScore(int, String) | Inserta nueva puntuación                 |
+| getAllScores()           | Obtiene top 100 puntuaciones            |
+| getHighestScore()        | Obtiene la puntuación más alta           |
++--------------------------+------------------------------------------+
+
+3.5 MAINACTIVITY (Activity Principal)
+--------------------------------------
+
+3.5.1 Descripción
+-----------------
+Activity principal que muestra el menú de inicio con animaciones y 
+navegación a otras actividades.
+
+3.5.2 Componentes UI
+--------------------
+
++------------------+------------------+--------------------------------+
+| Componente       | Tipo             | Descripción                    |
++------------------+------------------+--------------------------------+
+| logo             | ImageView        | Logo animado                   |
+| layout           | ConstraintLayout | Layout principal               |
+| animationLoopView| ImageView        | Animación de fotogramas        |
+| alienView        | AlienView        | Vista de aliens animados       |
+| mediaPlayer      | MediaPlayer      | Música de fondo del menú        |
++------------------+------------------+--------------------------------+
+
+3.5.3 Funcionalidades
+---------------------
+- Reproducción de música de fondo
+- Animaciones de logo y fondo
+- Navegación a Juego, Configuración, Puntajes, Acerca de
+- Gestión de ciclo de vida de MediaPlayer
+
+3.6 JUEGO (Activity del Juego)
+--------------------------------
+
+3.6.1 Descripción
+-----------------
+Activity contenedora que alberga VistaJuego y gestiona la UI del juego
+(botones de pausa, mute, salir).
+
+3.6.2 Componentes UI
+--------------------
+
++------------------+------------------+--------------------------------+
+| Componente       | Tipo             | Descripción                    |
++------------------+------------------+--------------------------------+
+| vistaJuego       | VistaJuego       | Vista principal del juego      |
+| starViewGame     | StarViewGame     | Vista de estrellas de fondo    |
+| btnPause         | ImageButton      | Botón de pausa                 |
+| btnMute          | ImageButton      | Botón de silencio              |
+| countdownView    | CountdownView    | Vista de cuenta regresiva      |
++------------------+------------------+--------------------------------+
+
+3.6.3 Métodos Principales
+-------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Descripción                              |
++--------------------------+------------------------------------------+
+| togglePausa()            | Alterna estado de pausa                  |
+| toggleMute()              | Alterna estado de silencio               |
+| iniciarCountdown()        | Inicia cuenta regresiva antes del juego  |
+| onConfigurationChanged()  | Maneja rotación de pantalla              |
++--------------------------+------------------------------------------+
+
+================================================================================
+                      4. SISTEMA DE BASE DE DATOS
+================================================================================
+
+4.1 ESTRUCTURA DE LA BASE DE DATOS
+-----------------------------------
+
+Nombre de Base de Datos: scores.db
+Versión: 2
+
+4.1.1 Tabla: scores
+--------------------
+
+CREATE TABLE scores (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    puntaje INTEGER NOT NULL,
+    fecha INTEGER NOT NULL,
+    nombre TEXT NOT NULL
+);
+
+4.1.2 Índices Implícitos
+------------------------
+- PRIMARY KEY en _id (autoincremental)
+- Consultas ordenadas por puntaje DESC (top 100)
+
+4.2 OPERACIONES DE BASE DE DATOS
+---------------------------------
+
+4.2.1 Inserción de Puntuación
+------------------------------
+Método: insertScore(int puntaje, String nombre)
+- Abre base de datos en modo escritura
+- Inserta nueva fila con puntaje, fecha actual, nombre
+- Cierra conexión
+
+4.2.2 Consulta de Puntuaciones
+-------------------------------
+Método: getAllScores()
+- Abre base de datos en modo lectura
+- Consulta top 100 ordenado por puntaje DESC
+- Retorna List<Score>
+- Cierra conexión
+
+4.2.3 Consulta de Máxima Puntuación
+------------------------------------
+Método: getHighestScore()
+- Abre base de datos en modo lectura
+- Consulta MAX(puntaje)
+- Retorna int
+- Cierra conexión
+
+4.3 UBICACIÓN FÍSICA
+--------------------
+La base de datos se almacena en:
+/data/data/com.example.asteroidesreal/databases/scores.db
+
+4.4 MIGRACIONES
+---------------
+Versión 1 -> Versión 2:
+- Se agregó columna "nombre" con valor por defecto 'Jugador'
+
+================================================================================
+                        5. RECURSOS Y ASSETS
+================================================================================
+
+5.1 ESTRUCTURA DE RECURSOS
+--------------------------
+
+app/src/main/res/
+├── drawable/          # Imágenes y drawables
+├── layout/            # Archivos XML de layout
+├── raw/               # Archivos de audio sin comprimir
+├── values/            # Strings, colores, estilos
+└── font/              # Fuentes personalizadas
+
+5.2 RECURSOS DRAWABLE
+---------------------
+
++------------------+------------------------------------------+
+| Recurso          | Descripción                              |
++------------------+------------------------------------------+
+| asicon.png       | Icono de la aplicación                   |
+| nave1.png        | Imagen de la nave espacial               |
+| asteroide1.png   | Imagen de asteroide                      |
+| navevector.png   | Imagen vectorial de nave                 |
+| asteroidevector.png| Imagen vectorial de asteroide          |
+| ce1.png, ce2.png | Corazones para vidas                    |
+| es1.png - es4.png| Estados del escudo                       |
+| s0.png - s11.png | Sprites de animación                    |
+| g1.png - g3.png  | Frames de animación                     |
+| aliennormal.png  | Alien normal                             |
+| alienpaz.png     | Alien pacífico                          |
+| jupiter.png      | Imagen de fondo (Júpiter)               |
+| logo.png         | Logo del juego                           |
++------------------+------------------------------------------+
+
+5.3 RECURSOS DE AUDIO (raw/)
+-----------------------------
+
++------------------+------------------------------------------+
+| Archivo          | Descripción                              |
++------------------+------------------------------------------+
+| l1.mp3           | Música de fondo del nivel 1              |
+| explosion.mp3    | Sonido de explosión                      |
+| laser3.mp3       | Sonido de disparo láser                   |
+| burbujaap.mp3    | Sonido de burbuja apareciendo            |
+| burubujaex.mp3   | Sonido de burbuja explotando             |
+| mc.mp3           | Música de misión completada               |
+| pixel_galaxy.mp3 | Música de fondo del menú principal       |
++------------------+------------------------------------------+
+
+5.4 LAYOUTS
+-----------
+
++------------------+------------------------------------------+
+| Layout           | Descripción                              |
++------------------+------------------------------------------+
+| activity_main.xml| Layout de MainActivity                    |
+| juego.xml        | Layout de Juego Activity                  |
+| activity_settings.xml| Layout de SettingsActivity          |
+| activity_puntajes.xml| Layout de PuntajesActivity          |
+| item_score.xml   | Layout de item en lista de puntajes      |
++------------------+------------------------------------------+
+
+5.5 VALORES (values/)
+---------------------
+
++------------------+------------------------------------------+
+| Archivo          | Contenido                                |
++------------------+------------------------------------------+
+| strings.xml      | Cadenas de texto de la aplicación        |
+| colors.xml       | Definiciones de colores                  |
+| themes.xml       | Temas de la aplicación                   |
+| style.xml        | Estilos de componentes                   |
++------------------+------------------------------------------+
+
+================================================================================
+                  6. SISTEMAS DE ENTRADA Y CONTROL
+================================================================================
+
+6.1 MÉTODOS DE CONTROL DISPONIBLES
+----------------------------------
+
++------------------+------------------------------------------+
+| Método           | Descripción                              |
++------------------+------------------------------------------+
+| Táctil           | Joystick virtual en pantalla             |
+| Teclado          | Teclas de flecha y espacio               |
+| Sensores         | Acelerómetro y giroscopio                |
++------------------+------------------------------------------+
+
+6.2 CONTROL TÁCTIL (JOYSTICK)
+------------------------------
+
+6.2.1 Implementación
+---------------------
+- Joystick virtual circular en la parte inferior izquierda
+- Radio base: 160dp (80dp * 2)
+- Radio thumb: 60dp (30dp * 2)
+- Detección mediante onTouchEvent()
+
+6.2.2 Cálculo de Dirección
+---------------------------
+direccionJoystick = Math.toDegrees(Math.atan2(deltaY, deltaX)) + 90
+velocidadJoystick = Math.min(distancia / joystickRadius, 1.0)
+
+6.2.3 Conversión a Movimiento
+------------------------------
+- direccionJoystick -> giroNave (interpolación suave)
+- velocidadJoystick -> aceleracionNave (escalado)
+
+6.3 CONTROL POR TECLADO
+------------------------
+
+6.3.1 Teclas Asignadas
+----------------------
+
++------------------+------------------------------------------+
+| Tecla            | Acción                                   |
++------------------+------------------------------------------+
+| Flecha Arriba    | Acelerar nave                            |
+| Flecha Izquierda | Rotar nave izquierda                     |
+| Flecha Derecha   | Rotar nave derecha                       |
+| Espacio          | Disparar                                 |
++------------------+------------------------------------------+
+
+6.3.2 Implementación
+--------------------
+- onKeyDown() detecta presión de teclas
+- Variables booleanas: teclaArriba, teclaIzquierda, teclaDerecha
+- onKeyUp() detecta liberación de teclas
+
+6.4 CONTROL POR SENSORES
+-------------------------
+
+6.4.1 Sensores Utilizados
+--------------------------
+
++------------------+------------------------------------------+
+| Sensor           | Tipo Android                             |
++------------------+------------------------------------------+
+| Acelerómetro     | Sensor.TYPE_ACCELEROMETER                 |
+| Giroscopio       | Sensor.TYPE_GYROSCOPE                     |
++------------------+------------------------------------------+
+
+6.4.2 Procesamiento de Datos
+-----------------------------
+
+Giroscopio (prioritario para rotación):
+- valoresGiroscopio[2] (eje Z) -> giroNave
+- Sensibilidad aumentada: multiplicador aplicado
+- Suavizado aplicado cuando no hay input
+
+Acelerómetro (fallback y aceleración):
+- valoresAcelerometro[0] (eje X) -> giroNave (si no hay giroscopio)
+- valoresAcelerometro[1] (eje Y) -> aceleracionNave
+- Sensibilidad aumentada: multiplicador aplicado
+
+6.4.3 Registro de Sensores
+---------------------------
+- activarSensores(): Registra listeners con SENSOR_DELAY_GAME
+- desactivarSensores(): Desregistra listeners
+- Se activan cuando sensoresActivados == true
+
+6.5 SISTEMA DE DISPARO
+-----------------------
+
+6.5.1 Mecánica
+--------------
+- Secuencia de 3 disparos
+- 200ms entre cada disparo
+- 600ms de cooldown después de la secuencia
+- Disparos se crean en la posición y dirección de la nave
+
+6.5.2 Implementación
+---------------------
+- procesarDisparo() verifica cooldown y secuencia
+- Cada disparo crea nuevo Grafico o VectorGrafico (misil)
+- Misiles se mueven en dirección del ángulo de la nave
+- Tiempo de vida limitado para misiles
+
+================================================================================
+                          7. SISTEMA DE AUDIO
+================================================================================
+
+7.1 COMPONENTES DE AUDIO
+------------------------
+
++------------------+------------------+--------------------------------+
+| Componente       | Tipo             | Uso                            |
++------------------+------------------+--------------------------------+
+| sonidoNivel1     | MediaPlayer      | Música de fondo del nivel      |
+| sonidoDisparo    | MediaPlayer      | Sonido de disparo              |
+| sonidoColision   | MediaPlayer      | Sonido de colisión             |
+| sonidoMisionCompletada| MediaPlayer| Música de misión completada     |
+| sonidoEscudoAparece| MediaPlayer    | Sonido de escudo apareciendo   |
+| sonidoEscudoExplota| MediaPlayer    | Sonido de escudo explotando    |
+| soundPool        | SoundPool        | Pool de sonidos de explosión   |
+| soundIdExplosion | int              | ID del sonido en SoundPool     |
++------------------+------------------+--------------------------------+
+
+7.2 GESTIÓN DE MÚSICA DE FONDO
+-------------------------------
+
+7.2.1 Inicialización
+--------------------
+- sonidoNivel1 se carga desde R.raw.l1
+- setLooping(true) para reproducción continua
+- Se reproduce solo cuando:
+  * juegoIniciado == true
+  * !pausado
+  * !juegoTerminado
+  * !audioMuteado
+
+7.2.2 Métodos de Control
+-------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Descripción                              |
++--------------------------+------------------------------------------+
+| reproducirMusicaJuego()   | Inicia/reanuda música si condiciones OK |
+| detenerMusicaInmediatamente()| Detiene y resetea música            |
+| setAudioMuteado(boolean)  | Silencia/activa todo el audio           |
++--------------------------+------------------------------------------+
+
+7.3 SISTEMA DE SILENCIO
+-----------------------
+
+7.3.1 Funcionamiento
+---------------------
+- Botón mute en UI (btnMute)
+- setAudioMuteado(true):
+  * Detiene todos los MediaPlayer
+  * Resetea todos los MediaPlayer
+  * Pausa SoundPool
+- setAudioMuteado(false):
+  * Reanuda reproducción según estado del juego
+
+7.4 EFECTOS DE SONIDO
+---------------------
+
+7.4.1 Sonidos de Disparo
+-------------------------
+- MediaPlayer para sonido de láser
+- Se reproduce en cada disparo (si no está muteado)
+
+7.4.2 Sonidos de Explosión
+---------------------------
+- SoundPool para múltiples explosiones simultáneas
+- Se reproduce en colisiones y destrucción de asteroides
+
+7.4.3 Sonidos de Colisión
+--------------------------
+- MediaPlayer para colisión de nave con asteroide
+- Vibración del dispositivo al colisionar
+
+================================================================================
+                        8. SISTEMA DE GRÁFICOS
+================================================================================
+
+8.1 MODOS GRÁFICOS
+------------------
+
++------------------+------------------------------------------+
+| Modo             | Valor | Descripción                      |
++------------------+-------+-----------------------------------+
+| Vector Imagen    | 0     | Imágenes vectoriales (default)   |
+| Normal           | 1     | Imágenes normales                 |
+| Vector Puro      | 2     | Formas vectoriales dibujadas      |
++------------------+-------+-----------------------------------+
+
+8.2 RENDERIZADO
+--------------
+
+8.2.1 Pipeline de Renderizado
+------------------------------
+1. onDraw(Canvas canvas) es llamado por el sistema
+2. Se dibuja fondo (StarViewGame o negro)
+3. Se dibujan estelas de nave (si aplica)
+4. Se dibujan asteroides (Grafico o VectorGrafico)
+5. Se dibuja nave (Grafico o VectorGrafico)
+6. Se dibujan misiles (Grafico o VectorGrafico)
+7. Se dibuja UI (vidas, puntaje, nivel, escudo, etc.)
+
+8.2.2 Optimizaciones
+---------------------
+- postInvalidate() solo en áreas que cambian
+- Radio de invalidación calculado por objeto
+- Dibujado condicional según modo gráfico
+
+8.3 ELEMENTOS GRÁFICOS
+-----------------------
+
+8.3.1 Nave
+----------
+- Modo 0,1: Imagen nave1.png o navevector.png
+- Modo 2: Triángulo vectorial blanco
+- Rotación según ángulo de la nave
+- Estela de movimiento (trail points)
+
+8.3.2 Asteroides
+----------------
+- Modo 0,1: Imagen asteroide1.png o asteroidevector.png
+- Modo 2: Polígono irregular generado aleatoriamente
+- Rotación continua
+- Fragmentación al ser destruidos
+
+8.3.3 Misiles
+-------------
+- Modo 0,1: Imagen pequeña
+- Modo 2: Línea amarilla con punto naranja
+- Movimiento rectilíneo en dirección de disparo
+
+8.4 UI GRÁFICA
+--------------
+
+8.4.1 Elementos de UI
+---------------------
+
++------------------+------------------------------------------+
+| Elemento         | Descripción                              |
++------------------+------------------------------------------+
+| Vidas            | Corazones animados (ce1.png, ce2.png)   |
+| Puntaje          | Texto en esquina superior izquierda     |
+| Nivel            | Texto "NIVEL X" al inicio de nivel      |
+| Escudo           | Animación de escudo (es1.png - es4.png) |
+| Pantalla Bonus   | Animación de puntuación al completar    |
++------------------+------------------------------------------+
+
+8.4.2 Fuentes
+-------------
+- Fuente pixel art: upheavtt.ttf
+- Tamaños variables según elemento
+- Colores según contexto (blanco, rosa, morado)
+
+================================================================================
+                   9. SISTEMA DE FÍSICA Y COLISIONES
+================================================================================
+
+9.1 FÍSICA DE MOVIMIENTO
+------------------------
+
+9.1.1 Nave
+----------
+Velocidad:
+- vx += aceleracionNave * cos(angulo) * factor
+- vy += aceleracionNave * sin(angulo) * factor
+- Aplicación de fricción: vx *= FRICCION, vy *= FRICCION
+- Limitación a MAX_VELOCIDAD_NAVE
+
+Rotación:
+- angulo += giroNave * factor
+- Normalización a rango 0-360 grados
+
+9.1.2 Asteroides
+----------------
+- Movimiento rectilíneo constante
+- Rotación continua
+- Wrap-around en bordes de pantalla
+
+9.1.3 Misiles
+-------------
+- Movimiento rectilíneo en dirección de disparo
+- Velocidad constante (PASO_VELOCIDAD_MISIL)
+- Tiempo de vida limitado
+
+9.2 DETECCIÓN DE COLISIONES
+----------------------------
+
+9.2.1 Método de Detección
+--------------------------
+- Distancia euclidiana entre centros
+- Comparación con suma de radios de colisión
+- radioColision calculado como (ancho + alto) / 4
+
+9.2.2 Tipos de Colisión
+------------------------
+
++------------------+------------------------------------------+
+| Tipo             | Objetos Involucrados                     |
++------------------+------------------------------------------+
+| Nave-Asteroide   | Nave colisiona con asteroide             |
+| Misil-Asteroide  | Misil destruye asteroide                 |
++------------------+------------------------------------------+
+
+9.2.3 Manejo de Colisiones
+---------------------------
+
+Nave-Asteroide:
+- Si nave tiene inmunidad: no hay daño
+- Si nave tiene escudo: escudo absorbe, se destruye
+- Si nave no tiene protección: pierde vida, activa inmunidad temporal
+
+Misil-Asteroide:
+- Asteroide se destruye
+- Se generan fragmentos (si aplica)
+- Se incrementa puntaje
+- Se reproduce sonido de explosión
+
+9.3 FRAGMENTACIÓN DE ASTEROIDES
+--------------------------------
+
+9.3.1 Sistema
+------------
+- Al destruir asteroide grande, se generan fragmentos
+- Número de fragmentos configurable (numFragmentosConfigurado)
+- Fragmentos más pequeños, velocidad aumentada
+- Fragmentos también pueden fragmentarse
+
+9.3.2 Implementación
+---------------------
+- Map<Grafico, Integer> fragmentacionAsteroides
+- Almacena nivel de fragmentación de cada asteroide
+- Límite de niveles de fragmentación
+
+9.4 GENERADOR DE ASTEROIDES Y CURVA DE DIFICULTAD
+--------------------------------------------------
+
+9.4.1 Fórmula de Número de Asteroides por Nivel
+------------------------------------------------
+El número de asteroides iniciales se calcula con la siguiente fórmula:
+
+    numAsteroides = 5 + nivel
+    
+    Límite máximo: numAsteroides <= 15
+
+Ejemplos:
+    Nivel 1: 5 + 1 = 6 asteroides
+    Nivel 2: 5 + 2 = 7 asteroides
+    Nivel 3: 5 + 3 = 8 asteroides
+    ...
+    Nivel 10: 5 + 10 = 15 asteroides (máximo)
+    Nivel 11+: 15 asteroides (máximo alcanzado)
+
+9.4.2 Fórmula de Velocidad de Asteroides
+-----------------------------------------
+La velocidad de los asteroides aumenta con el nivel según la fórmula:
+
+    factorVelocidad = 1.0 + (nivel - 1) * 0.2
+    
+    Velocidad X = (random(-2, 2)) * factorVelocidad
+    Velocidad Y = (random(-2, 2)) * factorVelocidad
+
+Esto significa un incremento del 20% por nivel sobre la velocidad base.
+
+Tabla de Factores de Velocidad:
++------------------+------------------+--------------------------------+
+| Nivel            | Factor           | Incremento sobre base          |
++------------------+------------------+--------------------------------+
+| 1                | 1.0              | 0% (velocidad base)            |
+| 2                | 1.2              | +20%                           |
+| 3                | 1.4              | +40%                           |
+| 4                | 1.6              | +60%                           |
+| 5                | 1.8              | +80%                           |
+| 6                | 2.0              | +100% (doble velocidad)        |
+| 7                | 2.2              | +120%                          |
+| 8                | 2.4              | +140%                          |
+| 9                | 2.6              | +160%                          |
+| 10               | 2.8              | +180%                          |
++------------------+------------------+--------------------------------+
+
+9.4.3 Tamaño de Asteroides
+---------------------------
+Los asteroides se generan con un tamaño reducido del 40% del tamaño original:
+
+    nuevoAncho = anchoOriginal * 0.4
+    nuevoAlto = altoOriginal * 0.4
+
+Esto aplica tanto para modo gráfico normal como vector imagen.
+
+9.4.4 Velocidad de Rotación
+----------------------------
+La velocidad de rotación de los asteroides es aleatoria:
+
+    rotacion = random(-4, 4) grados por frame
+
+No se ve afectada por el nivel.
+
+9.4.5 Algoritmo de Posicionamiento
+-----------------------------------
+Los asteroides se posicionan aleatoriamente con las siguientes restricciones:
+
+1. Distancia mínima del jugador:
+   - distanciaMinimaJugador = max(ancho/4, alto/4)
+   - Evita asteroides cerca de la posición inicial de la nave
+
+2. Distancia mínima entre asteroides:
+   - distanciaMinima = max(ancho/6, alto/6)
+   - Evita superposición inicial
+
+3. Si después de 500 intentos no se encuentra posición válida:
+   - Se reduce distanciaMinima en 20px
+   - Se reduce distanciaMinimaJugador en 20px
+   - Se reinicia el contador de intentos
+
+9.4.6 Fragmentación y Velocidad de Fragmentos
+-----------------------------------------------
+Cuando un asteroide se fragmenta, los fragmentos heredan el factor de 
+velocidad del nivel actual:
+
+    factorVelocidadFragmento = 1.0 + (nivel - 1) * 0.2
+    
+    Velocidad fragmento = velocidadOriginal * 1.5 * factorVelocidadFragmento
+
+Los fragmentos se mueven 50% más rápido que el asteroide original, y 
+además se aplica el factor de dificultad del nivel.
+
+9.4.7 Curva de Dificultad Completa
+-----------------------------------
+La dificultad aumenta de forma lineal y predecible:
+
+    Dificultad(nivel) = {
+        Asteroides: min(5 + nivel, 15)
+        Velocidad: 1.0 + (nivel - 1) * 0.2
+        Fragmentos: velocidad * 1.5 * factorVelocidad
+    }
+
+Gráfico de Dificultad (Asteroides vs Nivel):
+    
+    Asteroides
+       15 |                                    ────────
+          |                               ────
+       10 |                          ────
+          |                     ────
+        5 |              ────
+          |         ────
+        0 |────
+          └────┬────┬────┬────┬────┬────┬────┬────┬────
+               1    2    3    4    5    6    7    8    Nivel
+
+Gráfico de Dificultad (Factor Velocidad vs Nivel):
+    
+    Factor
+      3.0 |                                    ────────
+          |                               ────
+      2.0 |                          ────
+          |                     ────
+      1.0 |              ────
+          |         ────
+      0.0 |────
+          └────┬────┬────┬────┬────┬────┬────┬────┬────
+               1    2    3    4    5    6    7    8    Nivel
+
+9.4.8 Ejemplo de Generación para Nivel 5
+-----------------------------------------
+Para nivel 5:
+
+    numAsteroides = 5 + 5 = 10 asteroides
+    factorVelocidad = 1.0 + (5-1) * 0.2 = 1.8
+    
+    Para cada asteroide:
+        - Tamaño: 40% del original
+        - Velocidad X: random(-2, 2) * 1.8 = [-3.6, 3.6]
+        - Velocidad Y: random(-2, 2) * 1.8 = [-3.6, 3.6]
+        - Rotación: random(-4, 4) grados/frame
+        - Posición: aleatoria con restricciones de distancia
+        - Nivel fragmentación: 0 (asteroide inicial)
+
+================================================================================
+              10. GESTIÓN DE ESTADO Y PERSISTENCIA
+================================================================================
+
+10.1 SHAREDPREFERENCES
+----------------------
+
+10.1.1 Archivos Utilizados
+--------------------------
+
++------------------+------------------------------------------+
+| Archivo          | Uso                                      |
++------------------+------------------------------------------+
+| settings         | Configuración de usuario                 |
+| game_state       | Estado del juego en curso                |
++------------------+------------------------------------------+
+
+10.1.2 Claves en "settings"
+---------------------------
+
++------------------+------------------+--------------------------------+
+| Clave            | Tipo             | Descripción                    |
++------------------+------------------+--------------------------------+
+| graficos_mode    | int              | Modo gráfico (0,1,2)            |
+| sensores_activados| boolean         | Sensores habilitados            |
+| teclado_activado | boolean          | Teclado habilitado              |
+| tactil_activado  | boolean          | Control táctil habilitado       |
+| num_fragmentos   | int              | Número de fragmentos            |
+| musica_activada  | boolean          | Música habilitada              |
++------------------+------------------+--------------------------------+
+
+10.1.3 Claves en "game_state"
+------------------------------
+
++------------------+------------------+--------------------------------+
+| Clave            | Tipo             | Descripción                    |
++------------------+------------------+--------------------------------+
+| juego_en_curso   | boolean          | Flag de juego activo            |
+| nivel            | int              | Nivel actual                    |
+| puntaje          | int              | Puntuación actual               |
+| vidas            | int              | Vidas restantes                 |
+| tiempo_inicio_nivel| long           | Timestamp inicio de nivel       |
+| vidas_iniciales_nivel| int         | Vidas al inicio del nivel       |
+| enemigos_derrotados| int           | Asteroides destruidos           |
+| estado_mision    | String           | Estado de misión (enum)         |
+| nivel_completado | int              | Nivel recién completado         |
++------------------+------------------+--------------------------------+
+
+10.2 GUARDADO DE ESTADO
+-----------------------
+
+10.2.1 Cuándo se Guarda
+-----------------------
+- Al pausar el juego
+- Al cambiar de nivel
+- Al rotar la pantalla (onConfigurationChanged)
+- Al salir de la actividad (onPause, onSaveInstanceState)
+- Periódicamente durante el juego
+
+10.2.2 Método guardarEstadoJuego()
+-----------------------------------
+- Abre SharedPreferences "game_state"
+- Guarda todas las variables de estado
+- Convierte enums a String
+- Timestamp actual para tiempo_inicio_nivel
+
+10.3 RESTAURACIÓN DE ESTADO
+----------------------------
+
+10.3.1 Cuándo se Restaura
+-------------------------
+- En constructor de VistaJuego
+- Si juego_en_curso == true
+- Restaura nivel, puntaje, vidas, etc.
+- Restaura estado de misión
+
+10.3.2 Limpieza de Estado
+--------------------------
+- limpiarEstadoJuego() se llama cuando:
+  * Juego termina completamente
+  * Usuario sale del juego
+  * Nuevo juego se inicia (opcional)
+
+================================================================================
+                 11. CICLO DE VIDA DE LA APLICACIÓN
+================================================================================
+
+11.1 MAINACTIVITY - CICLO DE VIDA
+----------------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Acción                                   |
++--------------------------+------------------------------------------+
+| onCreate()               | Inicializa UI, animaciones, música      |
+| onResume()               | Reanuda música si está habilitada       |
+| onPause()                | Pausa música                              |
+| onDestroy()              | Libera MediaPlayer                       |
++--------------------------+------------------------------------------+
+
+11.2 JUEGO ACTIVITY - CICLO DE VIDA
+-----------------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Acción                                   |
++--------------------------+------------------------------------------+
+| onCreate()               | Inicializa VistaJuego, UI, countdown    |
+| onResume()               | Actualiza sensores, reanuda juego       |
+| onPause()                | Guarda estado, pausa juego (si aplica)   |
+| onDestroy()              | Detiene juego, limpia recursos          |
+| onConfigurationChanged()| Maneja rotación, mantiene juego activo  |
++--------------------------+------------------------------------------+
+
+11.3 VISTAJUEGO - CICLO DE VIDA
+-------------------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Acción                                   |
++--------------------------+------------------------------------------+
+| Constructor              | Inicializa variables, restaura estado   |
+| onSizeChanged()          | Calcula posiciones iniciales            |
+| onAttachedToWindow()     | Inicia thread del juego                  |
+| onDetachedFromWindow()   | Detiene thread, libera recursos         |
++--------------------------+------------------------------------------+
+
+11.4 THREAD DEL JUEGO
+---------------------
+
++--------------------------+------------------------------------------+
+| Método                   | Acción                                   |
++--------------------------+------------------------------------------+
+| run()                     | Loop principal a ~60 FPS                |
+|                          | - actualizaFisica()                      |
+|                          | - postInvalidate()                       |
+|                          | - sleep(PERIODO_PROCESO)                 |
++--------------------------+------------------------------------------+
+
+================================================================================
+                   12. CONFIGURACIÓN Y PREFERENCIAS
+================================================================================
+
+12.1 SETTINGSACTIVITY
+---------------------
+
+12.1.1 Opciones Configurables
+------------------------------
+
++------------------+------------------+--------------------------------+
+| Opción           | Tipo             | Valores                        |
++------------------+------------------+--------------------------------+
+| Modo Gráficos    | RadioGroup       | Vector Imagen, Normal, Vector  |
+| Sensores         | Switch           | Activado/Desactivado           |
+| Teclado          | Switch           | Activado/Desactivado           |
+| Táctil           | Switch           | Activado/Desactivado           |
+| Fragmentos       | SeekBar          | 1-10 fragmentos                |
+| Música           | Switch           | Activado/Desactivado           |
++------------------+------------------+--------------------------------+
+
+12.1.2 Persistencia
+-------------------
+- Cambios se guardan inmediatamente en SharedPreferences "settings"
+- VistaJuego lee configuración en actualizarConfiguracionSensores()
+
+12.2 VALORES POR DEFECTO
+-------------------------
+
++------------------+------------------+--------------------------------+
+| Configuración    | Valor por Defecto|                               |
++------------------+------------------+--------------------------------+
+| Modo Gráficos    | 0 (Vector Imagen)|                               |
+| Sensores         | true             |                               |
+| Teclado          | true             |                               |
+| Táctil           | true             |                               |
+| Fragmentos       | 5                |                               |
+| Música           | true             |                               |
++------------------+------------------+--------------------------------+
+
+================================================================================
+             13. TROUBLESHOOTING Y SOLUCIÓN DE PROBLEMAS
+================================================================================
+
+13.1 PROBLEMAS COMUNES
+----------------------
+
++------------------+------------------------------------------+
+| Problema         | Solución                                 |
++------------------+------------------------------------------+
+| Música no suena  | Verificar audioMuteado, juegoIniciado,   |
+|                  | pausado, juegoTerminado                   |
+| Sensores no      | Verificar sensoresActivados, llamar      |
+| funcionan        | actualizarConfiguracionSensores()        |
+| Juego se reinicia| Verificar guardarEstadoJuego() y         |
+| al rotar         | restauración en constructor              |
+| Colisiones no    | Verificar radioColision, distancia()     |
+| detectadas       | cálculo                                  |
+| FPS bajo         | Verificar PERIODO_PROCESO, optimizar    |
+|                  | invalidate()                              |
+| Base de datos    | Verificar permisos, ruta de archivo     |
+| no accesible     |                                          |
+| Asteroides no    | Verificar dimensiones de pantalla,      |
+| se generan       | llamar generarAsteroidesNivel()          |
+| Velocidad        | Verificar factorVelocidad = 1.0 +        |
+| incorrecta       | (nivel-1)*0.2                             |
++------------------+------------------------------------------+
+
+13.2 DEBUGGING
+--------------
+
+13.2.1 Logs Recomendados
+-------------------------
+- Estado del juego (pausado, iniciado, terminado)
+- Valores de sensores
+- Colisiones detectadas
+- Estado de audio
+- Guardado/restauración de estado
+- Número de asteroides generados
+- Factor de velocidad aplicado
+
+13.2.2 Puntos de Verificación
+------------------------------
+1. Thread del juego está vivo: isThreadAlive()
+2. Sensores registrados: verificar listeners
+3. MediaPlayer inicializado: verificar null
+4. Estado guardado: verificar SharedPreferences
+5. Canvas válido: verificar en onDraw()
+6. Dimensiones de pantalla: getWidth() > 0 && getHeight() > 0
+7. Factor de velocidad: calcular según nivel
+
+13.3 OPTIMIZACIONES
+-------------------
+
+13.3.1 Rendimiento
+------------------
+- Limitar número de asteroides simultáneos (máximo 15)
+- Usar postInvalidate() con regiones específicas
+- Evitar crear objetos en loops críticos
+- Reutilizar objetos cuando sea posible
+- Optimizar cálculos de colisión (solo objetos cercanos)
+
+13.3.2 Memoria
+--------------
+- Liberar MediaPlayer cuando no se usen
+- Limpiar listas de objetos destruidos
+- Evitar referencias circulares
+- Usar WeakReference cuando sea apropiado
+- Limitar número de PowerUpOrbs simultáneos (máximo 3)
+
+13.4 FÓRMULAS DE VERIFICACIÓN
+------------------------------
+
+13.4.1 Verificación de Número de Asteroides
+--------------------------------------------
+    numAsteroides = 5 + nivel
+    if (numAsteroides > 15) numAsteroides = 15
+    
+    Verificar: nivel >= 1, numAsteroides >= 6, numAsteroides <= 15
+
+13.4.2 Verificación de Factor de Velocidad
+-------------------------------------------
+    factorVelocidad = 1.0 + (nivel - 1) * 0.2
+    
+    Verificar: nivel >= 1, factorVelocidad >= 1.0
+
+13.4.3 Verificación de Posicionamiento
+---------------------------------------
+    distanciaJugador >= max(ancho/4, alto/4)
+    distanciaOtros >= max(ancho/6, alto/6)
+    
+    Verificar: intentos < 500 antes de reducir distancias
+
+================================================================================
+                       14. DIAGRAMAS DE ARQUITECTURA DETALLADOS
+================================================================================
+
+14.1 DIAGRAMA DE CLASES UML SIMPLIFICADO
+-----------------------------------------
+
+                    ┌─────────────────────┐
+                    │      Activity       │
+                    │   (Android Base)    │
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+                v              v              v
+    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+    │MainActivity  │  │   Juego      │  │SettingsActivity│
+    │              │  │              │  │              │
+    │- mediaPlayer │  │- vistaJuego  │  │- prefs       │
+    │- alienView  │  │- btnPause    │  │              │
+    └──────────────┘  │- btnMute      │  └──────────────┘
+                      └──────┬───────┘
+                              │
+                              v
+                    ┌─────────────────────┐
+                    │      View            │
+                    │   (Android Base)     │
+                    └──────────┬───────────┘
+                               │
+                               v
+                    ┌─────────────────────┐
+                    │    VistaJuego       │
+                    │                     │
+                    │- asteroides:List    │
+                    │- nave:Grafico       │
+                    │- misiles:List       │
+                    │- thread:ThreadJuego │
+                    │- nivel:int          │
+                    │- vidas:int          │
+                    │- puntaje:int        │
+                    │                     │
+                    │+ onDraw()           │
+                    │+ actualizaFisica()  │
+                    │+ iniciarJuego()     │
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+                v              v              v
+    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+    │   Grafico    │  │VectorGrafico │  │ ThreadJuego  │
+    │              │  │              │  │              │
+    │- drawable    │  │- tipo:Tipo   │  │+ run()       │
+    │- cenX, cenY  │  │- puntos:float[]│ │              │
+    │- incX, incY  │  │- radio:float  │  └──────────────┘
+    │- angulo      │  │              │
+    │              │  │              │
+    │+ dibujaGrafico()│+ dibujarVector()│
+    │+ incrementaPos()│+ incrementaPos()│
+    └──────────────┘  └──────────────┘
+            │
+            │ (usado por)
+            │
+            v
+    ┌─────────────────────┐
+    │   PowerUpOrb        │
+    │   (Inner Class)     │
+    │                      │
+    │- tipo:PowerUpType    │
+    │- grafico:Grafico      │
+    │- x, y:float          │
+    │- vx, vy:float        │
+    └─────────────────────┘
+
+14.2 DIAGRAMA DE SECUENCIA - INICIO DE JUEGO
+---------------------------------------------
+
+Usuario    Juego    VistaJuego    ThreadJuego    Grafico
+   │         │           │              │            │
+   │──start──>│           │              │            │
+   │         │──create──>│              │            │
+   │         │           │──init───────>│            │
+   │         │           │              │            │
+   │         │──countdown>│              │            │
+   │         │           │              │            │
+   │         │──start────>│              │            │
+   │         │           │──startThread─>│            │
+   │         │           │              │──loop──────>│
+   │         │           │              │            │
+   │         │           │<─generate─────│            │
+   │         │           │──asteroids────>│            │
+   │         │           │              │            │
+   │         │           │──render──────>│            │
+   │         │           │              │            │
+
+14.3 DIAGRAMA DE SECUENCIA - COLISIÓN Y FRAGMENTACIÓN
+------------------------------------------------------
+
+ThreadJuego    VistaJuego    Grafico    Asteroide    Fragmentos
+     │              │           │           │            │
+     │──update──────>│           │           │            │
+     │              │──check───>│           │            │
+     │              │           │──collide──>│            │
+     │              │           │           │            │
+     │              │<─destroy───│           │            │
+     │              │──fragment─>│           │            │
+     │              │           │           │──create───>│
+     │              │           │           │            │
+     │              │──remove───>│           │            │
+
+14.4 DIAGRAMA DE ESTADOS - ESTADO DEL JUEGO
+--------------------------------------------
+
+        [INICIO]
+           │
+           v
+    ┌──────────────┐
+    │  MENÚ        │
+    │  (MainActivity)│
+    └──────┬───────┘
+           │ (Start Game)
+           v
+    ┌──────────────┐
+    │  COUNTDOWN   │
+    │  (Juego)      │
+    └──────┬───────┘
+           │ (3, 2, 1, Go!)
+           v
+    ┌──────────────┐
+    │  JUGANDO     │──┐
+    │  (VistaJuego)│  │ (Pause)
+    └──────┬───────┘  │
+           │          │
+           │ (Game Over)│
+           v          │
+    ┌──────────────┐  │
+    │  PAUSADO     │<─┘
+    │  (VistaJuego)│
+    └──────┬───────┘
+           │ (Resume)
+           v
+    ┌──────────────┐
+    │  JUGANDO     │
+    └──────┬───────┘
+           │ (All Asteroids Destroyed)
+           v
+    ┌──────────────┐
+    │  BONUS       │
+    │  (Pantalla)  │
+    └──────┬───────┘
+           │ (Next Level)
+           v
+    ┌──────────────┐
+    │  TRANSICIÓN  │
+    └──────┬───────┘
+           │
+           v
+    ┌──────────────┐
+    │  JUGANDO     │
+    │  (Nivel++)   │
+    └──────────────┘
+
+14.5 DIAGRAMA DE COMPONENTES - SISTEMA DE AUDIO
+------------------------------------------------
+
+    VistaJuego
+        │
+        ├──> MediaPlayer (sonidoNivel1)
+        │    └──> R.raw.l1 (música fondo)
+        │
+        ├──> MediaPlayer (sonidoDisparo)
+        │    └──> R.raw.laser3
+        │
+        ├──> MediaPlayer (sonidoColision)
+        │    └──> (vibración)
+        │
+        ├──> MediaPlayer (sonidoMisionCompletada)
+        │    └──> R.raw.mc
+        │
+        ├──> MediaPlayer (sonidoEscudoAparece)
+        │    └──> R.raw.burbujaap
+        │
+        ├──> MediaPlayer (sonidoEscudoExplota)
+        │    └──> R.raw.burubujaex
+        │
+        └──> SoundPool (soundPool)
+             └──> R.raw.explosion (soundIdExplosion)
+
+14.6 DIAGRAMA DE FLUJO - GENERACIÓN DE ASTEROIDES
+---------------------------------------------------
+
+    [Inicio generarAsteroidesNivel()]
+         │
+         v
+    ¿Dimensiones válidas?
+         │ NO
+         │ └──> [Esperar y reintentar]
+         │
+         v SÍ
+    Calcular numAsteroides = 5 + nivel
+         │
+         v
+    ¿numAsteroides > 15?
+         │ SÍ
+         │ └──> numAsteroides = 15
+         │
+         v NO
+    Calcular factorVelocidad = 1.0 + (nivel-1)*0.2
+         │
+         v
+    [Para i = 0 hasta numAsteroides]
+         │
+         ├──> Generar posición aleatoria
+         │
+         ├──> Validar distancia de jugador
+         │
+         ├──> Validar distancia de otros asteroides
+         │
+         ├──> Crear Grafico/VectorGrafico
+         │
+         ├──> Establecer velocidad * factorVelocidad
+         │
+         ├──> Establecer rotación aleatoria
+         │
+         └──> Agregar a lista asteroides
+         │
+         v
+    [Fin]
+
+================================================================================
+                        15. REFERENCIAS TÉCNICAS
+================================================================================
+
+14.1 CLASES ANDROID UTILIZADAS
+-------------------------------
+
++------------------+------------------------------------------+
+| Clase            | Uso                                      |
++------------------+------------------------------------------+
+| Activity         | Activities principales                    |
+| View             | Base para VistaJuego                      |
+| Canvas           | Renderizado de gráficos                  |
+| Paint            | Estilos de dibujo                         |
+| MediaPlayer      | Reproducción de audio                    |
+| SoundPool        | Efectos de sonido                        |
+| SensorManager    | Gestión de sensores                      |
+| Sensor           | Sensores individuales                    |
+| SharedPreferences| Persistencia de configuración            |
+| SQLiteOpenHelper | Gestión de base de datos                 |
+| Vibrator         | Vibración del dispositivo                |
++------------------+------------------------------------------+
+
+15.2 CONSTANTES DEL SISTEMA
+----------------------------
+
++------------------+------------------------------------------+
+| Constante        | Valor                                    |
++------------------+------------------------------------------+
+| SENSOR_DELAY_GAME| Delay para sensores en juegos            |
+| MODE_PRIVATE      | Modo de SharedPreferences               |
++------------------+------------------------------------------+
+
+15.3 PERMISOS REQUERIDOS
+-------------------------
+
++------------------+------------------------------------------+
+| Permiso          | Uso                                      |
++------------------+------------------------------------------+
+| VIBRATE           | Vibración al colisionar                  |
++------------------+------------------------------------------+
+
+15.4 CONFIGURACIONES DEL MANIFEST
+----------------------------------
+
++------------------+------------------------------------------+
+| Configuración    | Valor                                    |
++------------------+------------------------------------------+
+| configChanges    | orientation|screenSize|keyboardHidden     |
+| screenOrientation| sensor (solo en Juego Activity)          |
++------------------+------------------------------------------+
+
+15.5 VERSIONES DE API
+---------------------
+
++------------------+------------------------------------------+
+| API              | Versión Android                          |
++------------------+------------------------------------------+
+| API 21 (mínima)  | Android 5.0 Lollipop                     |
+| API 33+ (objetivo)| Android 13+                             |
++------------------+------------------------------------------+
+
+================================================================================
+                              APÉNDICES
+================================================================================
+
+APÉNDICE A: FÓRMULAS MATEMÁTICAS
+---------------------------------
+
+Distancia entre dos puntos:
+    distancia = sqrt((x1-x2)² + (y1-y2)²)
+
+Ángulo desde delta X, Y:
+    angulo = atan2(deltaY, deltaX) * 180 / PI
+
+Velocidad con fricción:
+    velocidad = velocidad * FRICCION
+
+APÉNDICE B: CONVERSIONES
+-------------------------
+
+Grados a Radianes:
+    radianes = grados * PI / 180
+
+Radianes a Grados:
+    grados = radianes * 180 / PI
+
+APÉNDICE C: ESTRUCTURA DE ARCHIVOS COMPLETA
+--------------------------------------------
+
+AsteroidesReal2/
+├── app/
+│   ├── build.gradle
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── java/com/example/asteroidesreal/
+│       │   │   ├── MainActivity.java
+│       │   │   ├── Juego.java
+│       │   │   ├── VistaJuego.java
+│       │   │   ├── Grafico.java
+│       │   │   ├── VectorGrafico.java
+│       │   │   ├── Score.java
+│       │   │   ├── ScoreDatabaseHelper.java
+│       │   │   ├── SettingsActivity.java
+│       │   │   ├── PuntajesActivity.java
+│       │   │   ├── RainbowButton.java
+│       │   │   ├── StarViewGame.java
+│       │   │   ├── AlienView.java
+│       │   │   └── CountdownView.java
+│       │   └── res/
+│       │       ├── drawable/ (múltiples archivos)
+│       │       ├── layout/ (múltiples archivos)
+│       │       ├── raw/ (archivos de audio)
+│       │       ├── values/ (strings, colors, themes)
+│       │       └── font/ (fuentes)
+│       └── test/
+├── build.gradle
+├── settings.gradle
+├── gradle.properties
+├── README.md
+├── MANUAL_TECNICO.txt
+├── ARQUITECTURA.md
+├── ESTRUCTURA_CARPETAS.md
+└── DIAGRAMA_FLUJO.md
+
+APÉNDICE D: GLOSARIO DE TÉRMINOS
+---------------------------------
+
++------------------+------------------------------------------+
+| Término          | Definición                               |
++------------------+------------------------------------------+
+| FPS              | Frames Per Second (Fotogramas por segundo)|
+| Canvas           | Superficie de dibujo en Android          |
+| Drawable         | Recurso gráfico en Android               |
+| MediaPlayer      | Clase para reproducir audio/video       |
+| SoundPool        | Pool de sonidos para efectos            |
+| SensorManager    | Gestor del sistema de sensores          |
+| SharedPreferences| Almacenamiento clave-valor persistente   |
+| SQLite           | Base de datos relacional embebida        |
+| Thread           | Hilo de ejecución                        |
+| postInvalidate() | Solicita redibujado de View              |
+| Radio de Colisión| Radio usado para detectar colisiones     |
+| Wrap-around      | Teletransporte al otro lado de pantalla  |
+| Fragmentación    | División de asteroides en fragmentos     |
+| Power-up         | Mejora temporal (escudo, etc.)            |
+| Cooldown         | Tiempo de espera antes de nueva acción  |
++------------------+------------------------------------------+
+
+================================================================================
+                            FIN DEL DOCUMENTO
+================================================================================
+
+Este manual técnico proporciona una documentación completa del proyecto
+Asteroides Real 2. Para preguntas o actualizaciones, consultar el código
+fuente o contactar al equipo de desarrollo.
+
+Versión del Manual: 1.0
+Última Actualización: 2024
+
